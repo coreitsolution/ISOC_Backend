@@ -1,0 +1,36 @@
+version: "3.0"
+services:
+  pgsql:
+    image: postgres:16
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: qiKQc6mkJumfOaErq5g3sJgtXN17p0FD
+      POSTGRES_USER: coreit
+      POSTGRES_DB: isoc_backend
+      PGDATA: '/var/lib/postgresql/data'
+    volumes:
+      - ./pg_data:/var/lib/postgresql/data
+    ports:
+      - 5433:5432
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: wasurus.w@gmail.com
+      PGADMIN_DEFAULT_PASSWORD: 1q2w3e@@
+    volumes:
+      - ./pgadmin_data:/var/lib/pgadmin
+    ports:
+      - "5055:80"
+  # webapp:
+  #   build: 
+  #     context: .
+  #     dockerfile: ./Dockerfile
+  #   depends_on:
+  #     - pgsql
+  #   ports:
+  #     - 80:3333
+
+volumes:
+  pg-data:
+  pgadmin_data:
