@@ -4,7 +4,6 @@ import json
 import ssl
 import uuid
 import certifi
-import certifi
 import requests
 import base64
 from Crypto import Random
@@ -13,6 +12,9 @@ from Crypto.Cipher import PKCS1_v1_5
 from binascii import unhexlify
 from Crypto.Util.Padding import unpad
 from Crypto.Cipher import AES
+from dotenv import load_dotenv
+
+load_dotenv()
 
 dss_api_url = os.getenv("DSS_API_URL")
 dss_username = os.getenv("DSS_USERNAME")
@@ -81,3 +83,20 @@ def aes_decrypt(word, secret_key, secret_vector):
     cipher = AES.new(key, AES.MODE_CBC, iv)
     decrypted_word = unpad(cipher.decrypt(encrypted_hex_word), AES.block_size)
     return decrypted_word.decode("utf-8")
+
+def get_dss_mq_password():
+    key = RSA.generate(2048)
+    private_key = key.export_key().decode('utf-8')
+    public_key = key.publickey().export_key().decode('utf-8').replace("-----BEGIN PUBLIC KEY-----", "").replace("-----END PUBLIC KEY-----", "").replace("\n", "")
+    first_authentication_resp = first_authentication()
+    signature = get_signature(first_authentication_resp['realm'], first_authentication_resp['randomKey'])
+    second_authentication_resp = second_authentication(signature, first_authentication_resp['randomKey'], public_key)
+    secret_key = rsa_decrypt(second_authentication_resp['secretKey'], private_key)
+    secret_vector = rsa_decrypt(second_authentication_resp['secretVector'], private_key)
+    mq_credentials = get_mq_credentials(second_authentication_resp['token'])
+    decrypted_pass = aes_decrypt(mq_credentials['data']['password'], secret_key, secret_vector)
+    return decrypted_pass, mq_credentials['data']
+
+dss_mq_password, data = get_dss_mq_password()
+print(f"dss_mq_password: {dss_mq_password}")
+print(f"data: {data}")
