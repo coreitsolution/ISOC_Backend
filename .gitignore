@@ -126,3 +126,5 @@ dmypy.json
 
 pg_data
 pgadmin_data
+
+__pycache__/

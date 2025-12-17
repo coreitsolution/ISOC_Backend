@@ -10,3 +10,4 @@ paho-mqtt==1.6.1
 Flask-SQLAlchemy==3.0.5
 psycopg2-binary==2.9.6
 flask-mqtt==1.0.3
+flask_marshmallow==0.15.0
