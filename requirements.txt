@@ -12,3 +12,4 @@ psycopg2-binary==2.9.6
 flask-mqtt==1.0.3
 flask_marshmallow==0.15.0
 Flask-SocketIO==5.3.4
+pillow==12.0.0
