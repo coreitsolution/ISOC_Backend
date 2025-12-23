@@ -1,8 +1,5 @@
-import json
 import os
 import logging
-import ssl
-import certifi
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from db import db
@@ -12,12 +9,12 @@ from io import BytesIO
 from Crypto import Random
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import AES
-import paho.mqtt.client as mqtt
 from dotenv import load_dotenv
 from dss_auth import DSSAuth
 from api.api_group import APIGroup
 from api.api_face import APIFace
 from api.api_device import APIDevice
+from models.mq_logs_model import MqLogsModel
 
 load_dotenv()
 
@@ -84,7 +81,7 @@ def get_token():
 
 @app.route("/")
 def index():
-    return "ISOC Backend is running."
+    return ""
 
 
 @app.route("/isoc/api/v1/auth/token", methods=["POST"])
@@ -150,7 +147,14 @@ def api_face_search():
         return jsonify({"error": f"Missing keys: {', '.join(not_in_keys)}"}), 400
     imageData = req["image_base64"]
     if is_valid_base64_image(imageData):
-        face_search_resp = APIFace.api_search_face_start(token, imageData, req["begin_time"], req["end_time"], req["similarity"], req["analyse_mode"])
+        face_search_resp = APIFace.api_search_face_start(
+            token,
+            imageData,
+            req["begin_time"],
+            req["end_time"],
+            req["similarity"],
+            req["analyse_mode"],
+        )
         return face_search_resp
     else:
         return jsonify({"error": "image base64 is invalid"}), 400
@@ -216,62 +220,5 @@ def api_device_info(device_id):
     return jsonify(device_info_resp)
 
 
-################################# MQTT Section #################################
-
-def on_connect(client, userdata, flags, reason_code):
-        if reason_code == 0:
-            print("Connected to MQTT Broker!")
-            client.subscribe("your/topic")
-        else:
-            print(f"Failed to connect, return code {reason_code}")
-
-
-def on_message(client, userdata, msg):
-        payload_json = msg.payload.decode('utf-8')
-        json_data = json.loads(payload_json)
-        print(f"json_data: {json_data['info']}")
-
-def on_subscribe(mqttc, obj, mid, reason_code_list):
-    print("Subscribed: " + str(mid) + " " + str(reason_code_list))
-    
-def on_error(headers, message):
-    print('received an error "%s"' % message)
-    
-def dss_mqtt():
-    mqtt_pass, data = dssAuth.get_dss_mq_password()
-    userId = "001"
-    topic = "mq/alarm/msg/topic/" + userId
-    topic_event = "mq/event/msg/topic/" + userId
-    topic_publish = "mq/common/msg/topic"
-    topic_group = "mq/alarm/msg/group/topic/" + userId
-    mq_username = "consumer"
-    broker_address = os.getenv("MQTT_BROKER_URL")
-    broker_port = int(os.getenv("MQTT_BROKER_PORT", 1883))
-    client = mqtt.Client(protocol=mqtt.MQTTv31)
-    client.username_pw_set(mq_username, mqtt_pass)
-    client.on_connect = on_connect
-    client.on_message = on_message
-    client.on_subscribe = on_subscribe
-    client.on_log = on_error
-    client.tls_set(certifi.where(), cert_reqs=ssl.CERT_NONE, tls_version=ssl.PROTOCOL_TLSv1_2)
-    client.connect(broker_address, broker_port, 60)
-    logging.info("Connecting to MQTT Broker...")
-    client.subscribe(topic)
-    client.subscribe(topic_event)
-    client.subscribe(topic_publish)
-    client.subscribe(topic_group)
-    client.loop_start()
-    try:
-        while True:
-            pass
-    except KeyboardInterrupt:
-        logging.info("Disconnecting from MQTT Broker...")
-        client.loop_stop()
-        client.disconnect()
-
-################################### End of MQTT Section ###############################
-
-
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=3333, debug=os.getenv("DEBUG"), use_reloader=False)
-    dss_mqtt()

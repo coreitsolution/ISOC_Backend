@@ -22,14 +22,22 @@ services:
       - ./pgadmin_data:/var/lib/pgadmin
     ports:
       - "5055:80"
-  # webapp:
-  #   build: 
-  #     context: .
-  #     dockerfile: ./Dockerfile
-  #   depends_on:
-  #     - pgsql
-  #   ports:
-  #     - 80:3333
+  app:
+    build: 
+      context: .
+      dockerfile: ./Dockerfile
+    depends_on:
+      - pgsql
+    ports:
+      - 80:3333
+  app-mqtt:
+    build: 
+      context: .
+      dockerfile: ./Dockerfile.worker
+    depends_on:
+      - pgsql
+    ports:
+      - 1883:1883
 
 volumes:
   pg-data:
