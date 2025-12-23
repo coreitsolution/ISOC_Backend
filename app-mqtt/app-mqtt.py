@@ -15,6 +15,10 @@ from Crypto.Util.Padding import unpad
 from Crypto.Cipher import AES
 import paho.mqtt.client as mqtt
 from dotenv import load_dotenv
+import psycopg2
+from psycopg2.extras import Json
+import uuid
+from datetime import datetime
 
 load_dotenv()
 
@@ -92,6 +96,52 @@ def aes_decrypt(word, secret_key, secret_vector):
     decrypted_word = unpad(cipher.decrypt(encrypted_hex_word), AES.block_size)
     return decrypted_word.decode("utf-8")
 
+################################# PostgreSQL #################################
+
+def get_db_connection():
+    """Establish connection to PostgreSQL database"""
+    try:
+        conn = psycopg2.connect(
+            host=os.getenv("DB_HOST", "localhost"),
+            database=os.getenv("DB_NAME", "isoc_backend"),
+            user=os.getenv("DB_USER", "postgres"),
+            password=os.getenv("DB_PASSWORD", ""),
+            port=os.getenv("DB_PORT", "5432"),
+        )
+        return conn
+    except Exception as e:
+        logging.error(f"Database connection error: {e}")
+        return None
+
+def insert_mq_log(topic, message):
+    """Insert MQTT message log into PostgreSQL database"""
+    conn = get_db_connection()
+    if conn is None:
+        return False
+    
+    try:
+        with conn.cursor() as cursor:
+            mq_logs_id = str(uuid.uuid4())
+            created_at = datetime.now()
+            
+            insert_query = """
+            INSERT INTO mq_logs (mq_logs_id, mq_topic, mq_message, created_at)
+            VALUES (%s, %s, %s, %s)
+            """
+            
+            cursor.execute(insert_query, (mq_logs_id, topic, Json(message), created_at))
+            conn.commit()
+            
+            logging.info(f"Inserted MQ log for topic: {topic}")
+            return True
+            
+    except Exception as e:
+        logging.error(f"Error inserting MQ log: {e}")
+        conn.rollback()
+        return False
+    finally:
+        conn.close()
+
 ################################# DSS MQTT #################################
 def on_connect(client, userdata, flags, reason_code):
         if reason_code == 0:
@@ -104,6 +154,7 @@ def on_message(client, userdata, msg):
         payload_json = msg.payload.decode('utf-8')
         json_data = json.loads(payload_json)
         logging.info(f"json_data: {json_data['info']}")
+        insert_mq_log(msg.topic, json_data)
 
 def on_subscribe(mqttc, obj, mid, reason_code_list):
     logging.info("Subscribed: " + str(mid) + " " + str(reason_code_list))

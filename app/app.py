@@ -30,12 +30,6 @@ db.init_app(app)
 
 cors = CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 
-# app.config["MQTT_BROKER_URL"] = os.getenv("MQTT_BROKER_URL")
-# app.config["MQTT_BROKER_PORT"] = int(os.getenv("MQTT_BROKER_PORT", 1883))
-# app.config["MQTT_USERNAME"] = os.getenv("MQTT_USERNAME")
-# app.config["MQTT_KEEPALIVE"] = int(os.getenv("MQTT_KEEPALIVE", 60))
-# app.config["MQTT_TLS_ENABLED"] = os.getenv("MQTT_TLS_ENABLED") == "True"
-
 dssAuth = DSSAuth()
 apiGreoup = APIGroup()
 apiFace = APIFace()
