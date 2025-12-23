@@ -3,7 +3,7 @@ import logging
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_mqtt import Mqtt
-from db import db
+# from db import db
 import base64
 from PIL import Image
 from io import BytesIO
@@ -19,6 +19,8 @@ from dotenv import load_dotenv
 from dss_auth import DSSAuth
 from api.api_group import APIGroup
 from api.api_face import APIFace
+from api.api_device import APIDevice
+import asyncio
 
 load_dotenv()
 
@@ -30,7 +32,7 @@ logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
-db.init_app(app)
+# db.init_app(app)
 
 cors = CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 
@@ -45,44 +47,20 @@ app.config["MQTT_TLS_ENABLED"] = os.getenv("MQTT_TLS_ENABLED") == "True"
 dssAuth = DSSAuth()
 apiGreoup = APIGroup()
 apiFace = APIFace()
+apiDevice = APIDevice()
 
-with app.app_context():
-    # db.drop_all()
-    db.create_all()
-
-
-# @mqtt.on_connect()
-# def handle_connect(client, userdata, flags, rc):
-#     dss_mq_password, _ = dssAuth.get_dss_mq_password()
-#     logging.INFO("DSS MQTT Password: %s", dss_mq_password)
-#     if rc == 0:
-#         app.logger.info("Connected to MQTT Broker!")
-#     else:
-#         app.logger.error("Failed to connect, return code %d\n", rc)
-
-
-# @mqtt.on_message()
-# def handle_mqtt_message(client, userdata, message):
-#     app.logger.info(
-#         "Received MQTT message on topic %s: %s", message.topic, message.payload.decode()
-#     )
-
-
-# @mqtt.on_log()
-# def handle_logging(client, userdata, level, buf):
-#     print(level, buf)
+# with app.app_context():
+#     # db.drop_all()
+#     db.create_all()
 
 
 def is_valid_base64_image(base64_string):
     try:
-        # Decode the base64 string
         image_data = base64.b64decode(base64_string)
-        # Attempt to open and verify as an image
         image = Image.open(BytesIO(image_data))
-        image.verify()  # Checks if it's a valid image without loading fully
+        image.verify()
         return True
     except (ValueError, Exception):
-        # Invalid base64 or not a valid image
         return False
 
 
@@ -158,7 +136,7 @@ def api_group_list():
 
 
 @app.route("/isoc/api/v1/face/search", methods=["POST"])
-def api_face_search():
+async def api_face_search():
     resp = get_token()
     token = resp["token"]
     req = request.json
@@ -166,13 +144,93 @@ def api_face_search():
         return jsonify({"error": "Missing image_base64"}), 400
     imageData = req["image_base64"]
     if is_valid_base64_image(imageData):
-        face_search_resp = APIFace.api_search_face(token, imageData)
-        return jsonify(face_search_resp)
+        face_search_resp = await APIFace.api_search_face_start(token, imageData)
+        return face_search_resp
     else:
         return jsonify({"error": "image base64 is invalid"}), 400
+    
+    
+@app.route("/isoc/api/v1/face/search/stop", methods=["POST"])
+def api_face_search_stop():
+    resp = get_token()
+    token = resp["token"]
+    req = request.json
+    if "session_id" not in req:
+        return jsonify({"error": "Missing session_id"}), 400
+    session_id = req["session_id"]
+    face_search_stop_resp = APIFace.api_search_face_stop(token, session_id)
+    return jsonify(face_search_stop_resp)
 
+
+@app.route("/isoc/api/v1/face/search/session", methods=["POST"])
+def api_face_search_session():
+    resp = get_token()
+    token = resp["token"]
+    req = request.json
+    if "session_id" not in req:
+        return jsonify({"error": "Missing session_id"}), 400
+    session_id = req["session_id"]
+    face_search_session_resp = APIFace.api_search_face_session(token, session_id)
+    return jsonify(face_search_session_resp)
+
+
+@app.route("/isoc/api/v1/face/search/download", methods=["POST"])
+def api_face_search_download():
+    resp = get_token()
+    token = resp["token"]
+    req = request.json
+    if "session_id" not in req:
+        return jsonify({"error": "Missing session_id"}), 400
+    if "device_code" not in req:
+        return jsonify({"error": "Missing device_code"}), 400
+    if "urls" not in req:
+        return jsonify({"error": "Missing urls"}), 400
+    session_id = req["session_id"]
+    device_code = req["device_code"]
+    urls = req["urls"]
+    face_search_download_resp = APIFace.api_search_face_download_image(token, session_id, device_code, urls)
+    return jsonify(face_search_download_resp)
+
+
+@app.route("/isoc/api/v1/device/get", methods=["GET"])
+def api_device_tree():
+    resp = get_token()
+    token = resp["token"]
+    device_tree_resp = APIDevice.api_get_device_tree(token)
+    return jsonify(device_tree_resp)
+
+
+@app.route("/isoc/api/v1/device/info/<device_id>", methods=["GET"])
+def api_device_info(device_id):
+    resp = get_token()
+    token = resp["token"]
+    device_info_resp = APIDevice.api_get_device_info(token, device_id)
+    return jsonify(device_info_resp)
 
 
 if __name__ == "__main__":
     # socketio.run(app, host="0.0.0.0", port=3333, debug=os.getenv("DEBUG"), use_reloader=False)
     app.run(host="0.0.0.0", port=3333, debug=os.getenv("DEBUG"), use_reloader=False)
+
+
+
+# @mqtt.on_connect()
+# def handle_connect(client, userdata, flags, rc):
+#     dss_mq_password, _ = dssAuth.get_dss_mq_password()
+#     logging.INFO("DSS MQTT Password: %s", dss_mq_password)
+#     if rc == 0:
+#         app.logger.info("Connected to MQTT Broker!")
+#     else:
+#         app.logger.error("Failed to connect, return code %d\n", rc)
+
+
+# @mqtt.on_message()
+# def handle_mqtt_message(client, userdata, message):
+#     app.logger.info(
+#         "Received MQTT message on topic %s: %s", message.topic, message.payload.decode()
+#     )
+
+
+# @mqtt.on_log()
+# def handle_logging(client, userdata, level, buf):
+#     print(level, buf)
