@@ -6,6 +6,7 @@ import uuid
 import certifi
 import requests
 import base64
+import logging
 from Crypto import Random
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_v1_5
@@ -15,6 +16,10 @@ from Crypto.Cipher import AES
 from dotenv import load_dotenv
 
 load_dotenv()
+
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 dss_api_url = os.getenv("DSS_API_URL")
 dss_username = os.getenv("DSS_USERNAME")

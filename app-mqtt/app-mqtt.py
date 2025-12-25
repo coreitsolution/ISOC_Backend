@@ -177,10 +177,11 @@ if __name__ == '__main__':
     decrypted_pass = aes_decrypt(mq_credentials['data']['password'], secret_key, secret_vector)
     logging.info(f"dss_mq_password: {decrypted_pass}")
     userId = second_authentication_resp['userId']
+    userGroupId = second_authentication_resp['userGroupId'] 
 
-    topic = "mq/alarm/msg/topic/" + userId
-    topic_event = "mq/event/msg/topic/" + userId
-    topic_publish = "mq/common/msg/topic"
+    # topic = "mq/alarm/msg/topic/" + userId
+    # topic_event = "mq/event/msg/topic/" + userId
+    # topic_publish = "mq/common/msg/topic"
     topic_group = "mq/alarm/msg/group/topic/" + userId
     mq_username = mq_credentials['data']['userName']
 
@@ -197,9 +198,9 @@ if __name__ == '__main__':
     client.connect(dss_host, dss_mqtt_port, 60)
     logging.info("Connected to MQTT Broker.")
     
-    client.subscribe(topic)
-    client.subscribe(topic_event)
-    client.subscribe(topic_publish)
+    # client.subscribe(topic)
+    # client.subscribe(topic_event)
+    # client.subscribe(topic_publish)
     client.subscribe(topic_group)
     
     client.loop_start()
@@ -211,3 +212,4 @@ if __name__ == '__main__':
         print("Disconnecting from MQTT Broker.")
         client.loop_stop()
         client.disconnect()
+        

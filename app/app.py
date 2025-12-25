@@ -2,7 +2,7 @@ import os
 import logging
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-from db import db
+# from db import db
 import base64
 from PIL import Image
 from io import BytesIO
@@ -14,19 +14,20 @@ from dss_auth import DSSAuth
 from api.api_group import APIGroup
 from api.api_face import APIFace
 from api.api_device import APIDevice
+from api.api_person import APIPerson
 from models.mq_logs_model import MqLogsModel
 
 load_dotenv()
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
-app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("SQLALCHEMY_DATABASE_URI")
+# app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("SQLALCHEMY_DATABASE_URI")
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
-db.init_app(app)
+# db.init_app(app)
 
 cors = CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 
@@ -34,10 +35,11 @@ dssAuth = DSSAuth()
 apiGreoup = APIGroup()
 apiFace = APIFace()
 apiDevice = APIDevice()
+apiPerson = APIPerson()
 
-with app.app_context():
-    # db.drop_all()
-    db.create_all()
+# with app.app_context():
+#     # db.drop_all()
+#     db.create_all()
 
 
 def is_valid_base64_image(base64_string):
@@ -212,6 +214,14 @@ def api_device_info(device_id):
     token = resp["token"]
     device_info_resp = APIDevice.api_get_device_info(token, device_id)
     return jsonify(device_info_resp)
+
+
+@app.route("/isoc/api/v1/person/list", methods=["GET"])
+def api_person_list():
+    resp = get_token()
+    token = resp["token"]
+    person_list_resp = APIPerson.api_person_list(token)
+    return jsonify(person_list_resp)
 
 
 if __name__ == "__main__":
