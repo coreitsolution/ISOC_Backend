@@ -15,3 +15,11 @@ class APIPerson:
                 verify=False,
             ).json()
         return resp
+    
+    def api_person_detail(token, person_id):
+        resp = requests.get(
+                url="https://" + dss_api_url + f"/obms/api/v1.1/acs/person/{person_id}",
+                headers={"X-Subject-Token": token},
+                verify=False,
+            ).json()
+        return resp

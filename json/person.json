@@ -1,0 +1,24 @@
+{
+    "associateId": null,
+    "email": null,
+    "facePictures": [
+        "https://58.136.159.204:4443/v1/s/3232235940/8443/upload/obms/headPic/35111246@1@1766994584586.jpg"
+    ],
+    "firstName": "test 123",
+    "gender": "0",
+    "lastName": "",
+    "orgCode": "001004",
+    "orgInfos": [
+        {
+            "hasAuthority": "1",
+            "orgCode": "001004",
+            "orgName": "Black List Test"
+        }
+    ],
+    "orgName": "Black List Test",
+    "personId": "35111246",
+    "remark": "",
+    "sourceId": null,
+    "sourceType": "1",
+    "tel": null
+}

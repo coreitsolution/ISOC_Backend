@@ -27,6 +27,7 @@ logging.basicConfig(
 )
 
 dss_host = os.getenv("DSS_API_URL")
+dss_mqtt = os.getenv("MQTT_BROKER_URL", dss_host)
 dss_mqtt_port = int(os.getenv("MQTT_BROKER_PORT", 1883))
 dss_username = os.getenv("DSS_USERNAME")
 dss_password = os.getenv("DSS_PASSWORD")
@@ -158,6 +159,7 @@ def on_message(client, userdata, msg):
 
 def on_subscribe(mqttc, obj, mid, reason_code_list):
     logging.info("Subscribed: " + str(mid) + " " + str(reason_code_list))
+    logging.info("Subscription successful.")
 
 def on_error(headers, message):
     logging.error('received an error "%s"' % message)
@@ -177,12 +179,14 @@ if __name__ == '__main__':
     decrypted_pass = aes_decrypt(mq_credentials['data']['password'], secret_key, secret_vector)
     logging.info(f"dss_mq_password: {decrypted_pass}")
     userId = second_authentication_resp['userId']
-    userGroupId = second_authentication_resp['userGroupId'] 
+    # userGroupId = second_authentication_resp['userGroupId'] 
+    # logging.info(f"second_authentication_resp: {second_authentication_resp}")
+    userGroupId = "001004"
 
-    # topic = "mq/alarm/msg/topic/" + userId
-    # topic_event = "mq/event/msg/topic/" + userId
-    # topic_publish = "mq/common/msg/topic"
-    topic_group = "mq/alarm/msg/group/topic/" + userId
+    topic = "mq/alarm/msg/topic/" + userId
+    topic_event = "mq/event/msg/topic/" + userId
+    topic_publish = "mq/common/msg/topic/" + userId
+    topic_group = "mq/alarm/msg/group/topic/" + userGroupId
     mq_username = mq_credentials['data']['userName']
 
     client = mqtt.Client()
@@ -195,12 +199,12 @@ if __name__ == '__main__':
     client.tls_set(certifi.where(), cert_reqs=ssl.CERT_NONE, tls_version=ssl.PROTOCOL_TLSv1_2)   
     logging.info("Connecting to MQTT Broker...")
 
-    client.connect(dss_host, dss_mqtt_port, 60)
+    client.connect(dss_mqtt, dss_mqtt_port, 60)
     logging.info("Connected to MQTT Broker.")
     
-    # client.subscribe(topic)
-    # client.subscribe(topic_event)
-    # client.subscribe(topic_publish)
+    client.subscribe(topic)
+    client.subscribe(topic_event)
+    client.subscribe(topic_publish)
     client.subscribe(topic_group)
     
     client.loop_start()

@@ -129,31 +129,29 @@ def api_face_search():
     token = resp["token"]
     req = request.json
     not_in_keys = []
-    if "image_base64" not in req:
-        not_in_keys.append("image_base64")
-    if "begin_time" not in req:
-        not_in_keys.append("begin_time")
-    if "end_time" not in req:
-        not_in_keys.append("end_time")
+    if "analyseMode" not in req:
+        not_in_keys.append("analyseMode")
+    if "beginTime" not in req:
+        not_in_keys.append("beginTime")
+    if "endTime" not in req:
+        not_in_keys.append("endTime")
     if "similarity" not in req:
         not_in_keys.append("similarity")
-    if "analyse_mode" not in req:
-        not_in_keys.append("analyse_mode")
     if not_in_keys:
         return jsonify({"error": f"Missing keys: {', '.join(not_in_keys)}"}), 400
-    imageData = req["image_base64"]
-    if is_valid_base64_image(imageData):
+    faceImageData = req["faceImageData"]
+    if is_valid_base64_image(faceImageData):
         face_search_resp = APIFace.api_search_face_start(
             token,
-            imageData,
-            req["begin_time"],
-            req["end_time"],
+            faceImageData,
+            req["beginTime"],
+            req["endTime"],
             req["similarity"],
-            req["analyse_mode"],
+            req["analyseMode"],
         )
         return face_search_resp
     else:
-        return jsonify({"error": "image base64 is invalid"}), 400
+        return jsonify({"error": "faceImageData base64 is invalid"}), 400
 
 
 @app.route("/isoc/api/v1/face/search/stop", methods=["POST"])
@@ -222,6 +220,14 @@ def api_person_list():
     token = resp["token"]
     person_list_resp = APIPerson.api_person_list(token)
     return jsonify(person_list_resp)
+
+
+@app.route("/isoc/api/v1/person/detail/<person_id>", methods=["GET"])
+def api_person_detail(person_id):
+    resp = get_token()
+    token = resp["token"]
+    person_detail_resp = APIPerson.api_person_detail(token, person_id)
+    return jsonify(person_detail_resp)
 
 
 if __name__ == "__main__":
