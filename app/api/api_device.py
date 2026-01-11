@@ -9,7 +9,7 @@ logging.basicConfig(level=logging.INFO)
 dss_api_url = os.getenv("DSS_API_URL")
 
 class APIDevice:
-    def api_get_device_tree(token):
+    def api_get_device_tree(self, token):
         payload = {
             "orgCode": "",
         }
@@ -23,7 +23,7 @@ class APIDevice:
         ).json()
         return resp
     
-    def api_get_device_info(token, device_id):
+    def api_get_device_info(self, token, device_id):
         resp = requests.get(
             url="https://"
             + dss_api_url

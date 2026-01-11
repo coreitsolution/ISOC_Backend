@@ -35,12 +35,11 @@ logging.basicConfig(
 
 cors = CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 
-dssAuth = DSSAuth()
-apiGreoup = APIGroup()
-apiFace = APIFace()
-apiDevice = APIDevice()
-apiPerson = APIPerson()
-
+dss_auth = DSSAuth()
+api_group = APIGroup()
+api_face = APIFace()
+api_device = APIDevice()
+api_person = APIPerson()
 utils = Utils()
 
 # with app.app_context():
@@ -68,14 +67,14 @@ def get_token():
         .replace("-----END PUBLIC KEY-----", "")
         .replace("\n", "")
     )
-    first_authentication_resp = dssAuth.first_authentication()
-    signature = dssAuth.get_signature(
+    first_authentication_resp = dss_auth.first_authentication()
+    signature = dss_auth.get_signature(
         first_authentication_resp["realm"], first_authentication_resp["randomKey"]
     )
-    signature = dssAuth.get_signature(
+    signature = dss_auth.get_signature(
         first_authentication_resp["realm"], first_authentication_resp["randomKey"]
     )
-    second_authentication_resp = dssAuth.second_authentication(
+    second_authentication_resp = dss_auth.second_authentication(
         signature, first_authentication_resp["randomKey"], public_key
     )
     return second_authentication_resp
@@ -103,7 +102,7 @@ def auth_alive():
     if "token" not in req:
         return jsonify({"error": "Missing token"}), 400
     token = req["token"]
-    alive_resp = dssAuth.keep_alive(token)
+    alive_resp = dss_auth.keep_alive(token)
     if "code" not in alive_resp:
         return jsonify({"error": "Invalid token"}), 500
     return jsonify(alive_resp)
@@ -115,7 +114,7 @@ def auth_refresh():
     if "token" not in req:
         return jsonify({"error": "Missing token"}), 400
     token = req["token"]
-    refresh_resp = dssAuth.update_token(token)
+    refresh_resp = dss_auth.update_token(token)
     if "code" not in refresh_resp:
         return jsonify({"error": "Invalid token"}), 500
     return jsonify(refresh_resp)
@@ -125,7 +124,7 @@ def auth_refresh():
 def api_group_list():
     resp = get_token()
     token = resp["token"]
-    group_list_resp = APIGroup.api_group_list(token)
+    group_list_resp = api_group.api_group_list(token)
     return jsonify(group_list_resp)
 
 
@@ -149,11 +148,11 @@ def api_face_search():
             not_in_keys.append(key)
     if not_in_keys:
         return jsonify({"error": f"missing keys: {', '.join(not_in_keys)}"}), 400
-    faceImageData = req["faceImageData"]
-    if is_valid_base64_image(faceImageData):
-        face_search_resp = APIFace.api_search_face_start(
+    face_image_data = req["faceImageData"]
+    if is_valid_base64_image(face_image_data):
+        face_search_resp = api_face.api_search_face_start(
             token,
-            faceImageData,
+            face_image_data,
             req["beginTime"],
             req["endTime"],
             req["similarity"],
@@ -173,7 +172,7 @@ def api_face_search_stop():
     if "session_id" not in req:
         return jsonify({"error": "Missing session_id"}), 400
     session_id = req["session_id"]
-    face_search_stop_resp = APIFace.api_search_face_stop(token, session_id)
+    face_search_stop_resp = api_face.api_search_face_stop(token, session_id)
     return jsonify(face_search_stop_resp)
 
 
@@ -185,7 +184,7 @@ def api_face_search_session():
     if "session_id" not in req:
         return jsonify({"error": "Missing session_id"}), 400
     session_id = req["session_id"]
-    face_search_session_resp = APIFace.api_search_face_session(token, session_id)
+    face_search_session_resp = api_face.api_search_face_session(token, session_id)
     return jsonify(face_search_session_resp)
 
 
@@ -205,7 +204,7 @@ def api_face_search_download():
     session_id = req["session_id"]
     device_code = req["device_code"]
     urls = req["urls"]
-    face_search_download_resp = APIFace.api_search_face_download_image(
+    face_search_download_resp = api_face.api_search_face_download_image(
         token, session_id, device_code, urls
     )
     logging.info(f"face_search_download_resp: {face_search_download_resp}")
@@ -228,7 +227,7 @@ def api_face_search_download():
 def api_device_tree():
     resp = get_token()
     token = resp["token"]
-    device_tree_resp = APIDevice.api_get_device_tree(token)
+    device_tree_resp = api_device.api_get_device_tree(token)
     return jsonify(device_tree_resp)
 
 
@@ -236,7 +235,7 @@ def api_device_tree():
 def api_device_info(device_id):
     resp = get_token()
     token = resp["token"]
-    device_info_resp = APIDevice.api_get_device_info(token, device_id)
+    device_info_resp = api_device.api_get_device_info(token, device_id)
     return jsonify(device_info_resp)
 
 
@@ -244,7 +243,7 @@ def api_device_info(device_id):
 def api_person_list():
     resp = get_token()
     token = resp["token"]
-    person_list_resp = APIPerson.api_person_list(token)
+    person_list_resp = api_person.api_person_list(token)
     return jsonify(person_list_resp)
 
 
@@ -252,7 +251,7 @@ def api_person_list():
 def api_person_detail(person_id):
     resp = get_token()
     token = resp["token"]
-    person_detail_resp = APIPerson.api_person_detail(token, person_id)
+    person_detail_resp = api_person.api_person_detail(token, person_id)
     return jsonify(person_detail_resp)
 
 
@@ -276,12 +275,12 @@ def api_dss_face_search():
             not_in_keys.append(key)
     if not_in_keys:
         return jsonify({"error": f"missing keys: {', '.join(not_in_keys)}"}), 400
-    faceImageData = req["faceImageData"]
-    if is_valid_base64_image(faceImageData):
+    face_image_data = req["faceImageData"]
+    if is_valid_base64_image(face_image_data):
         logging.info("api_search_face_start called")
-        face_search_resp = APIFace.api_search_face_start(
+        face_search_resp = api_face.api_search_face_start(
             token,
-            faceImageData,
+            face_image_data,
             req["beginTime"],
             req["endTime"],
             req["similarity"],
@@ -293,10 +292,10 @@ def api_dss_face_search():
         session = face_search_resp["data"]["session"]
         time.sleep(5)
         logging.info("api_search_face_stop called")
-        APIFace.api_search_face_stop(token, session)
+        api_face.api_search_face_stop(token, session)
         time.sleep(1)
         logging.info("api_search_face_session called")
-        face_search_session_resp = APIFace.api_search_face_session(token, session)
+        face_search_session_resp = api_face.api_search_face_session(token, session)
         data = face_search_session_resp["data"]["pageData"]
         result = []
         if len(data) > 0:
@@ -314,29 +313,27 @@ def api_dss_face_search():
                         "url": item["pictureUrl"],
                     },
                 ]
-                face_search_download_resp = APIFace.api_search_face_download_image(
+                face_search_download_resp = api_face.api_search_face_download_image(
                     token, session, device_code, urls
                 )
                 logging.info(f"face_search_download_resp: {face_search_download_resp}")
                 download_results = face_search_download_resp["data"]["results"]
-                faceBase64 = ""
-                faceUrl = ""
-                pictureBase64 = ""
-                pictureUrl = ""
+                face_base64 = ""
+                face_url = ""
+                picture_base64 = ""
+                picture_url = ""
                 for download_item in download_results:
                     logging.info(download_item["url"] + "?token=" + credential)
                     if download_item["type"] == "1":
-                        faceUrl = download_item["url"] + "?token=" + credential
-                        faceBase64 = utils.image_url_to_base64(
-                            download_item["url"] + "?token=" + credential
-                        )
-                        logging.info(f"faceBase64: {faceBase64}")
+                        face_url = download_item["url"] + "?token=" + credential
+                        # face_base64 = utils.image_url_to_base64(
+                        #     download_item["url"] + "?token=" + credential
+                        # )
                     elif download_item["type"] == "2":
-                        pictureUrl = download_item["url"] + "?token=" + credential
-                        pictureBase64 = utils.image_url_to_base64(
-                            download_item["url"] + "?token=" + credential
-                        )
-                        logging.info(f"pictureBase64: {pictureBase64}")
+                        picture_url = download_item["url"] + "?token=" + credential
+                        # picture_base64 = utils.image_url_to_base64(
+                        #     download_item["url"] + "?token=" + credential
+                        # )
                 result.append(
                     {
                         "id": item["id"],
@@ -344,10 +341,10 @@ def api_dss_face_search():
                         "channelId": item["channelId"],
                         "channelName": item["channelName"],
                         "recordSource": item["recordSource"],
-                        "faceImageUrl": faceUrl,
-                        "faceBase64": faceBase64,
-                        "pictureUrl": pictureUrl,
-                        "pictureBase64": pictureBase64,
+                        "faceImageUrl": face_url,
+                        "faceBase64": face_base64,
+                        "pictureUrl": picture_url,
+                        "pictureBase64": picture_base64,
                         "captureTime": item["captureTime"],
                         "similarity": item["similarity"],
                         "personId": item["personId"],

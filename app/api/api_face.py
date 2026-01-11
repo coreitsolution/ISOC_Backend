@@ -10,7 +10,7 @@ dss_api_url = os.getenv("DSS_API_URL")
 
 
 class APIFace:
-    def api_search_face_start(token, imageData, beginTime, endTime, similarity, analyseMode, channelIds):
+    def api_search_face_start(self, token, imageData, beginTime, endTime, similarity, analyseMode, channelIds):
         payload = {
             "beginTime": beginTime,
             "endTime": endTime,
@@ -29,7 +29,7 @@ class APIFace:
         ).json()
         return resp
 
-    def api_search_face_stop(token, session_id):
+    def api_search_face_stop(self, token, session_id):
         payload = {
             "session": session_id,
         }
@@ -43,7 +43,7 @@ class APIFace:
         ).json()
         return resp
 
-    def api_search_face_session(token, session_id):
+    def api_search_face_session(self, token, session_id):
         payload = {
             "page": "1",
             "pageSize": "20",
@@ -60,7 +60,7 @@ class APIFace:
         ).json()
         return resp
 
-    def api_search_face_download_image(token, session_id, device_code, urls):
+    def api_search_face_download_image(self, token, session_id, device_code, urls):
         payload = {
             "session": session_id,
             "deviceCode": device_code,

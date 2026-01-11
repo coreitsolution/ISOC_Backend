@@ -9,7 +9,7 @@ load_dotenv()
 dss_api_url = os.getenv("DSS_API_URL")
 
 class APIGroup:
-    def api_group_list(token):
+    def api_group_list(self, token):
         resp = requests.get(
                 url="https://" + dss_api_url + "/obms/api/v1.1/acs/person-group/list",
                 headers={"X-Subject-Token": token},
