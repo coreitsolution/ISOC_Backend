@@ -38,6 +38,40 @@ services:
       - pgsql
     ports:
       - 1883:1883
+  zookeeper:
+    image: bitnami/zookeeper:latest
+    ports:
+      - "2181:2181"
+    environment:
+      # Zookeeper does not require authentication for this simple setup
+      ALLOW_ANONYMOUS_LOGIN: "yes"
+
+  kafka:
+    image: bitnami/kafka:latest
+    ports:
+      - "9092:9092"
+      - "9094:9094"
+    environment:
+      # Dependencies
+      KAFKA_CFG_ZOOKEEPER_CONNECT: zookeeper:2181
+      ALLOW_PLAINTEXT_LISTENER: "yes"
+      # Listeners configuration
+      KAFKA_CFG_LISTENERS: CLIENT://:9092,EXTERNAL://:9094
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CLIENT:SASL_PLAINTEXT,EXTERNAL:SASL_PLAINTEXT
+      KAFKA_CFG_SASL_ENABLED_MECHANISMS: PLAIN
+      KAFKA_CFG_SASL_MECHANISM_INTER_BROKER_PROTOCOL: PLAIN
+      # Advertised listeners point to the correct hostname/IP
+      KAFKA_CFG_ADVERTISED_LISTENERS: CLIENT://kafka:9092,EXTERNAL://localhost:9094
+      # User credentials (admin/admin-secret)
+      KAFKA_CFG_SASL_JAAS_CONFIG: |
+        org.apache.kafka.common.security.plain.PlainLoginModule required
+        username="admin"
+        password="admin-secret"
+        user_admin="admin-secret";
+      # Enable Authorizer to enforce ACLs if needed (optional)
+      # KAFKA_CFG_AUTHORIZER_CLASS_NAME: org.apache.kafka.metadata.authorizer.StandardAuthorizer
+    depends_on:
+      - zookeeper
 
 volumes:
   pg-data:
