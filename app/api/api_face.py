@@ -10,17 +10,14 @@ dss_api_url = os.getenv("DSS_API_URL")
 
 
 class APIFace:
-    def api_search_face_start(token, imageData, beginTime, endTime, similarity, analyseMode):
+    def api_search_face_start(token, imageData, beginTime, endTime, similarity, analyseMode, channelIds):
         payload = {
             "beginTime": beginTime,
             "endTime": endTime,
             "similarity": similarity,
             "faceImageData": imageData,
             "analyseMode": analyseMode,
-            "channelIds": [
-                "1000002$1$0$1",
-                "1000002$1$0$2",
-            ],
+            "channelIds": channelIds,
         }
         resp = requests.post(
             url="https://"
@@ -69,6 +66,7 @@ class APIFace:
             "deviceCode": device_code,
             "urls": urls,
         }
+        logging.info(f"download_image_payload: {payload}")
         resp = requests.post(
             url="https://"
             + dss_api_url

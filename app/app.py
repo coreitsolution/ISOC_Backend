@@ -1,7 +1,9 @@
 import os
 import logging
+import time
 from flask import Flask, jsonify, request
 from flask_cors import CORS
+
 # from db import db
 import base64
 from PIL import Image
@@ -10,12 +12,14 @@ from Crypto import Random
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import AES
 from dotenv import load_dotenv
+from sqlalchemy import null
 from dss_auth import DSSAuth
 from api.api_group import APIGroup
 from api.api_face import APIFace
 from api.api_device import APIDevice
 from api.api_person import APIPerson
 from models.mq_logs_model import MqLogsModel
+from utils.ulits import Utils
 
 load_dotenv()
 
@@ -36,6 +40,8 @@ apiGreoup = APIGroup()
 apiFace = APIFace()
 apiDevice = APIDevice()
 apiPerson = APIPerson()
+
+utils = Utils()
 
 # with app.app_context():
 #     # db.drop_all()
@@ -80,7 +86,7 @@ def index():
     return ""
 
 
-@app.route("/isoc/api/v1/auth/token", methods=["POST"])
+@app.route("/dss/api/v1/auth/token", methods=["POST"])
 def auth_token():
     resp = get_token()
     token = resp["token"]
@@ -91,7 +97,7 @@ def auth_token():
     )
 
 
-@app.route("/isoc/api/v1/auth/alive", methods=["POST"])
+@app.route("/dss/api/v1/auth/alive", methods=["POST"])
 def auth_alive():
     req = request.json
     if "token" not in req:
@@ -103,7 +109,7 @@ def auth_alive():
     return jsonify(alive_resp)
 
 
-@app.route("/isoc/api/v1/auth/refresh", methods=["POST"])
+@app.route("/dss/api/v1/auth/refresh", methods=["POST"])
 def auth_refresh():
     req = request.json
     if "token" not in req:
@@ -115,7 +121,7 @@ def auth_refresh():
     return jsonify(refresh_resp)
 
 
-@app.route("/isoc/api/v1/group/list", methods=["GET"])
+@app.route("/dss/api/v1/group/list", methods=["GET"])
 def api_group_list():
     resp = get_token()
     token = resp["token"]
@@ -123,22 +129,26 @@ def api_group_list():
     return jsonify(group_list_resp)
 
 
-@app.route("/isoc/api/v1/face/search", methods=["POST"])
+@app.route("/dss/api/v1/face/search", methods=["POST"])
 def api_face_search():
     resp = get_token()
     token = resp["token"]
     req = request.json
     not_in_keys = []
-    if "analyseMode" not in req:
-        not_in_keys.append("analyseMode")
-    if "beginTime" not in req:
-        not_in_keys.append("beginTime")
-    if "endTime" not in req:
-        not_in_keys.append("endTime")
-    if "similarity" not in req:
-        not_in_keys.append("similarity")
+    req_key = [
+        "analyseMode",
+        "beginTime",
+        "endTime",
+        "similarity",
+        "faceImageData",
+        "channelIds",
+    ]
+    not_in_keys = []
+    for key in req_key:
+        if key not in req:
+            not_in_keys.append(key)
     if not_in_keys:
-        return jsonify({"error": f"Missing keys: {', '.join(not_in_keys)}"}), 400
+        return jsonify({"error": f"missing keys: {', '.join(not_in_keys)}"}), 400
     faceImageData = req["faceImageData"]
     if is_valid_base64_image(faceImageData):
         face_search_resp = APIFace.api_search_face_start(
@@ -148,13 +158,14 @@ def api_face_search():
             req["endTime"],
             req["similarity"],
             req["analyseMode"],
+            req["channelIds"],
         )
         return face_search_resp
     else:
         return jsonify({"error": "faceImageData base64 is invalid"}), 400
 
 
-@app.route("/isoc/api/v1/face/search/stop", methods=["POST"])
+@app.route("/dss/api/v1/face/search/stop", methods=["POST"])
 def api_face_search_stop():
     resp = get_token()
     token = resp["token"]
@@ -166,7 +177,7 @@ def api_face_search_stop():
     return jsonify(face_search_stop_resp)
 
 
-@app.route("/isoc/api/v1/face/search/session", methods=["POST"])
+@app.route("/dss/api/v1/face/search/session", methods=["POST"])
 def api_face_search_session():
     resp = get_token()
     token = resp["token"]
@@ -178,10 +189,12 @@ def api_face_search_session():
     return jsonify(face_search_session_resp)
 
 
-@app.route("/isoc/api/v1/face/search/download", methods=["POST"])
+@app.route("/dss/api/v1/face/search/download", methods=["POST"])
 def api_face_search_download():
     resp = get_token()
+    # logging.info(f"response: {resp}")
     token = resp["token"]
+    credential = resp["credential"]
     req = request.json
     if "session_id" not in req:
         return jsonify({"error": "Missing session_id"}), 400
@@ -195,10 +208,23 @@ def api_face_search_download():
     face_search_download_resp = APIFace.api_search_face_download_image(
         token, session_id, device_code, urls
     )
+    logging.info(f"face_search_download_resp: {face_search_download_resp}")
+    results = face_search_download_resp["data"]["results"]
+    results_new = []
+    for result in results:
+        url = result["url"] + "?token=" + credential
+        results_new.append(
+            {
+                "id": result["id"],
+                "type": result["type"],
+                "url": url,
+            }
+        )
+    face_search_download_resp["data"]["results"] = results_new
     return jsonify(face_search_download_resp)
 
 
-@app.route("/isoc/api/v1/device/get", methods=["GET"])
+@app.route("/dss/api/v1/device/get", methods=["GET"])
 def api_device_tree():
     resp = get_token()
     token = resp["token"]
@@ -206,7 +232,7 @@ def api_device_tree():
     return jsonify(device_tree_resp)
 
 
-@app.route("/isoc/api/v1/device/info/<device_id>", methods=["GET"])
+@app.route("/dss/api/v1/device/info/<device_id>", methods=["GET"])
 def api_device_info(device_id):
     resp = get_token()
     token = resp["token"]
@@ -214,7 +240,7 @@ def api_device_info(device_id):
     return jsonify(device_info_resp)
 
 
-@app.route("/isoc/api/v1/person/list", methods=["GET"])
+@app.route("/dss/api/v1/person/list", methods=["GET"])
 def api_person_list():
     resp = get_token()
     token = resp["token"]
@@ -222,12 +248,127 @@ def api_person_list():
     return jsonify(person_list_resp)
 
 
-@app.route("/isoc/api/v1/person/detail/<person_id>", methods=["GET"])
+@app.route("/dss/api/v1/person/detail/<person_id>", methods=["GET"])
 def api_person_detail(person_id):
     resp = get_token()
     token = resp["token"]
     person_detail_resp = APIPerson.api_person_detail(token, person_id)
     return jsonify(person_detail_resp)
+
+
+@app.route("/dss/api/v1/face/search_by_image", methods=["POST"])
+def api_dss_face_search():
+    resp = get_token()
+    token = resp["token"]
+    credential = resp["credential"]
+    req = request.json
+    req_key = [
+        "analyseMode",
+        "beginTime",
+        "endTime",
+        "similarity",
+        "faceImageData",
+        "channelIds",
+    ]
+    not_in_keys = []
+    for key in req_key:
+        if key not in req:
+            not_in_keys.append(key)
+    if not_in_keys:
+        return jsonify({"error": f"missing keys: {', '.join(not_in_keys)}"}), 400
+    faceImageData = req["faceImageData"]
+    if is_valid_base64_image(faceImageData):
+        logging.info("api_search_face_start called")
+        face_search_resp = APIFace.api_search_face_start(
+            token,
+            faceImageData,
+            req["beginTime"],
+            req["endTime"],
+            req["similarity"],
+            req["analyseMode"],
+            req["channelIds"],
+        )
+        if face_search_resp["desc"] != "Success":
+            return jsonify(face_search_resp), 500
+        session = face_search_resp["data"]["session"]
+        time.sleep(5)
+        logging.info("api_search_face_stop called")
+        APIFace.api_search_face_stop(token, session)
+        time.sleep(1)
+        logging.info("api_search_face_session called")
+        face_search_session_resp = APIFace.api_search_face_session(token, session)
+        data = face_search_session_resp["data"]["pageData"]
+        result = []
+        if len(data) > 0:
+            for item in data:
+                device_code = item["channelId"].split("$")[0]
+                urls = [
+                    {
+                        "id": item["id"],
+                        "type": "1",
+                        "url": item["faceImageUrl"],
+                    },
+                    {
+                        "id": item["id"],
+                        "type": "2",
+                        "url": item["pictureUrl"],
+                    },
+                ]
+                face_search_download_resp = APIFace.api_search_face_download_image(
+                    token, session, device_code, urls
+                )
+                logging.info(f"face_search_download_resp: {face_search_download_resp}")
+                download_results = face_search_download_resp["data"]["results"]
+                faceBase64 = ""
+                faceUrl = ""
+                pictureBase64 = ""
+                pictureUrl = ""
+                for download_item in download_results:
+                    logging.info(download_item["url"] + "?token=" + credential)
+                    if download_item["type"] == "1":
+                        faceUrl = download_item["url"] + "?token=" + credential
+                        faceBase64 = utils.image_url_to_base64(
+                            download_item["url"] + "?token=" + credential
+                        )
+                        logging.info(f"faceBase64: {faceBase64}")
+                    elif download_item["type"] == "2":
+                        pictureUrl = download_item["url"] + "?token=" + credential
+                        pictureBase64 = utils.image_url_to_base64(
+                            download_item["url"] + "?token=" + credential
+                        )
+                        logging.info(f"pictureBase64: {pictureBase64}")
+                result.append(
+                    {
+                        "id": item["id"],
+                        "eventCode": item["eventCode"],
+                        "channelId": item["channelId"],
+                        "channelName": item["channelName"],
+                        "recordSource": item["recordSource"],
+                        "faceImageUrl": faceUrl,
+                        "faceBase64": faceBase64,
+                        "pictureUrl": pictureUrl,
+                        "pictureBase64": pictureBase64,
+                        "captureTime": item["captureTime"],
+                        "similarity": item["similarity"],
+                        "personId": item["personId"],
+                        "personName": item["personName"],
+                        "personSimilarity": item["personSimilarity"],
+                        "age": item["age"],
+                        "gender": item["gender"],
+                    }
+                )
+        return (
+            jsonify(
+                {
+                    "code": face_search_session_resp["code"],
+                    "message": face_search_session_resp["desc"],
+                    "data": result,
+                }
+            ),
+            200,
+        )
+    else:
+        return jsonify({"error": "faceImageData base64 is invalid"}), 400
 
 
 if __name__ == "__main__":
