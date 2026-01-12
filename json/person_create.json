@@ -1,0 +1,89 @@
+{
+    "baseInfo": {
+        "personId": "16448790",
+        "lastName": "",
+        "firstName": "test",
+        "gender": "0",
+        "orgCode": "001",
+        "orgCodes": [
+            "001"
+        ],
+        "email": "aa@test.com",
+        "tel": "18888888888",
+        "remark": "asd",
+        "source": "0",
+        "facePictures": []
+    },
+    "extensionInfo": {
+        "nickName": "nnnn",
+        "address": "qqq",
+        "idType": "0",
+        "idNo": "123123",
+        "nationalityId": "9999",
+        "birthday": "1993-10-10",
+        "companyName": "cccc",
+        "department": "bbb",
+        "position": "zzzz"
+    },
+    "userDefineFields": [
+        {
+            "fieldId": "1",
+            "fieldName": "wse",
+            "fieldValue": "wse"
+        }
+    ],
+    "residentInfo": {
+        "houseHolder": "1",
+        "sipId": "1#1#1",
+        "vdpUser": "1"
+    },
+    "authenticationInfo": {
+        "combinationPassword": "59a4ac79560526b7495585c572b87781",
+        "cards": [
+            {
+                "cardNo": "AAAA1111",
+                "duressFlag": "0"
+            }
+        ],
+        "fingerprints": [],
+        "startTime": "1711296000",
+        "endTime": "2026915199"
+    },
+    "accessInfo": {
+        "accessType": "0",
+        "guestUseTimes": "200",
+        "passageRuleIds": [
+            "1"
+        ]
+    },
+    "faceComparisonInfo": {
+        "enableFaceComparisonGroup": "1",
+        "faceComparisonGroupId": "1"
+    },
+    "entranceInfo": {
+        "parkingSpaceQuotas": [
+            {
+                "parkingLotId": "2",
+                "parkingSpaceQuota": 11
+            }
+        ],
+        "vehicles": [
+            {
+                "id": "",
+                "plateNo": "ASD1212",
+                "vehicleColor": "100",
+                "vehicleBrand": "-1",
+                "remark": "",
+                "entranceGroups": [
+                    {
+                        "parkingLotId": "1",
+                        "entranceGroupIds": [],
+                        "entranceLongTerm": "1",
+                        "entranceStartTime": "-1",
+                        "entranceEndTime": "-1"
+                    }
+                ]
+            }
+        ]
+    }
+}
