@@ -20,12 +20,31 @@ def api_person_list():
     return jsonify(person_list_resp)
 
 
-@person_route.route("/dss/api/v1/person/detail/<person_id>", methods=["GET"])
-def api_person_detail(person_id):
+@person_route.route("/dss/api/v1/person/detail", methods=["POST"])
+def api_person_detail():
     resp = utils.get_token()
     token = resp["token"]
-    person_detail_resp = api_person.api_person_detail(token, person_id)
-    return jsonify(person_detail_resp)
+    req = request.json
+    req_key = ["personId"]
+    not_in_keys = utils.key_validation(req, req_key)
+    if not_in_keys:
+        return jsonify({"error": f"missing keys: {', '.join(not_in_keys)}"}), 400
+    person_detail_resp = api_person.api_person_detail(token, req["personId"])
+    if person_detail_resp["desc"] != "Success":
+        return jsonify(person_detail_resp)
+    result = {
+        "personId": person_detail_resp["data"]["baseInfo"]["personId"],
+        "firstName": person_detail_resp["data"]["baseInfo"]["firstName"],
+        "lastName": person_detail_resp["data"]["baseInfo"]["lastName"],
+        "gender": person_detail_resp["data"]["baseInfo"]["gender"],
+        "orgCode": person_detail_resp["data"]["baseInfo"]["orgCode"],
+        "facePictures": person_detail_resp["data"]["baseInfo"]["facePictures"],
+        "orgName": person_detail_resp["data"]["baseInfo"]["orgName"],
+        "email": person_detail_resp["data"]["baseInfo"]["email"],
+        "tel": person_detail_resp["data"]["baseInfo"]["tel"],
+        "remark": person_detail_resp["data"]["baseInfo"]["remark"],
+    }
+    return jsonify({"code": person_detail_resp["code"], "desc": person_detail_resp["desc"], "data": result})
 
 
 @person_route.route("/dss/api/v1/person/add", methods=["POST"])
