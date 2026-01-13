@@ -113,37 +113,69 @@ def api_dss_face_search():
         return jsonify({"error": "faceImageData base64 is invalid"}), 400
 
 
-@face_route.route("/dss/api/v1/face/search", methods=["POST"])
+@face_route.route("/dss/api/v1/face/search/feature", methods=["POST"])
 def api_face_search():
     resp = utils.get_token()
     token = resp["token"]
+    credential = resp["credential"]
     req = request.json
     not_in_keys = []
-    req_key = [
-        "analyseMode",
-        "beginTime",
-        "endTime",
-        "similarity",
-        "faceImageData",
-        "channelIds",
-    ]
+    req_key = ["beginTime", "endTime", "page", "pageSize", "currentPage", "channelIds"]
     not_in_keys = utils.key_validation(req, req_key)
     if not_in_keys:
         return jsonify({"error": f"missing keys: {', '.join(not_in_keys)}"}), 400
-    face_image_data = req["faceImageData"]
-    if utils.is_valid_base64_image(face_image_data):
-        face_search_resp = api_face.api_search_face_start(
-            token,
-            face_image_data,
-            req["beginTime"],
-            req["endTime"],
-            req["similarity"],
-            req["analyseMode"],
-            req["channelIds"],
-        )
-        return face_search_resp
-    else:
-        return jsonify({"error": "faceImageData base64 is invalid"}), 400
+
+    face_search_resp = api_face.api_search_face_feature(
+        token,
+        req["beginTime"],
+        req["endTime"],
+        req["page"],
+        req["pageSize"],
+        req["currentPage"],
+        req["channelIds"],
+    )
+    if face_search_resp["desc"] != "Success":
+        return jsonify(face_search_resp), 500
+    data = face_search_resp["data"]["pageData"]
+    result = []
+    if len(data) > 0:
+        for item in data:
+            face_base64 = ""
+            picture_base64 = ""
+            face_base64 = utils.image_url_to_base64(
+                item["faceImageUrl"] + "?token=" + credential
+            )
+            picture_base64 = utils.image_url_to_base64(
+                item["pictureUrl"] + "?token=" + credential
+            )
+            result.append(
+                {
+                    "id": item["id"],
+                    "channelId": item["channelId"],
+                    "channelName": item["channelName"],
+                    "recordSource": item["recordSource"],
+                    "faceImageUrl": item["faceImageUrl"],
+                    "faceBase64": face_base64,
+                    "pictureUrl": item["pictureUrl"],
+                    "pictureBase64": picture_base64,
+                    "captureTime": item["captureTime"],
+                    "personId": item["personId"],
+                    "personName": item["personName"],
+                    "personSimilarity": item["personSimilarity"],
+                    "age": item["age"],
+                    "gender": item["gender"],
+                }
+            )
+    return (
+        jsonify(
+            {
+                "code": face_search_resp["code"],
+                "message": face_search_resp["desc"],
+                "data": result,
+            }
+        ),
+        200,
+    )
 
 
 @face_route.route("/dss/api/v1/face/search/stop", methods=["POST"])
