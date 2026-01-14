@@ -9,4 +9,4 @@ Flask-JWT-Extended==4.7.1
 Flask-SQLAlchemy==3.0.5
 psycopg2-binary==2.9.6
 flask_marshmallow==0.15.0
-pillow==12.1.0
+pillow==11.3.0
