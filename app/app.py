@@ -32,4 +32,4 @@ def health():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=3333, debug=os.getenv("DEBUG"), use_reloader=False)
+    app.run(host="0.0.0.0", port=3334, debug=os.getenv("DEBUG"), use_reloader=False)
