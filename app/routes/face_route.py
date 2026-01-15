@@ -171,6 +171,7 @@ def api_face_search():
             {
                 "code": face_search_resp["code"],
                 "message": face_search_resp["desc"],
+                "totalCount": face_search_resp["data"]["totalCount"],
                 "data": result,
             }
         ),
@@ -234,3 +235,44 @@ def api_face_search_download():
         )
     face_search_download_resp["data"]["results"] = results_new
     return jsonify(face_search_download_resp)
+
+
+@face_route.route("/dss/api/v1/face/search/feature/test", methods=["POST"])
+def api_face_search():
+    resp = utils.get_token()
+    token = resp["token"]
+    credential = resp["credential"]
+    req = request.json
+    not_in_keys = []
+    req_key = ["beginTime", "endTime", "page", "pageSize", "currentPage", "channelIds"]
+    not_in_keys = utils.key_validation(req, req_key)
+    if not_in_keys:
+        return jsonify({"error": f"missing keys: {', '.join(not_in_keys)}"}), 400
+
+    face_search_resp = api_face.api_search_face_feature(
+        token,
+        req["beginTime"],
+        req["endTime"],
+        req["page"],
+        req["pageSize"],
+        req["currentPage"],
+        req["channelIds"],
+    )
+    if face_search_resp["desc"] != "Success":
+        return jsonify(face_search_resp), 500
+    data = face_search_resp["data"]["pageData"]
+    result = []
+    for item in data:
+        result.append(
+            {
+                "id": item["id"],
+            }
+        )
+    return jsonify(
+        {
+            "code": face_search_resp["code"],
+            "message": face_search_resp["desc"],
+            "totalCount": face_search_resp["data"]["totalCount"],
+            "data": result,
+        }
+    ), 200
