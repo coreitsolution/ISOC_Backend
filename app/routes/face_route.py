@@ -1,3 +1,4 @@
+import datetime
 import logging
 import time
 from flask import Blueprint, jsonify, request
@@ -238,41 +239,59 @@ def api_face_search_download():
 
 
 @face_route.route("/dss/api/v1/face/search/feature/test", methods=["POST"])
-def api_face_search():
+def api_face_search_test():
     resp = utils.get_token()
     token = resp["token"]
-    credential = resp["credential"]
     req = request.json
     not_in_keys = []
-    req_key = ["beginTime", "endTime", "page", "pageSize", "currentPage", "channelIds"]
+    req_key = ["beginTime", "endTime", "page", "pageSize", "channelIds"]
     not_in_keys = utils.key_validation(req, req_key)
     if not_in_keys:
         return jsonify({"error": f"missing keys: {', '.join(not_in_keys)}"}), 400
 
-    face_search_resp = api_face.api_search_face_feature(
-        token,
-        req["beginTime"],
-        req["endTime"],
-        req["page"],
-        req["pageSize"],
-        req["currentPage"],
-        req["channelIds"],
-    )
-    if face_search_resp["desc"] != "Success":
-        return jsonify(face_search_resp), 500
-    data = face_search_resp["data"]["pageData"]
-    result = []
-    for item in data:
-        result.append(
-            {
-                "id": item["id"],
-            }
-        )
-    return jsonify(
-        {
-            "code": face_search_resp["code"],
-            "message": face_search_resp["desc"],
-            "totalCount": face_search_resp["data"]["totalCount"],
-            "data": result,
-        }
-    ), 200
+    begin_time = req["beginTime"]
+    end_time = req["endTime"]
+    date_list = utils.generate_date_list(begin_time, end_time)
+    return jsonify({"date_list": date_list}), 200
+    # begin_day = begin_date.strftime("%Y-%m-%d")
+    # end_day = end_date.strftime("%Y-%m-%d")
+    # delta_days = (end_date - begin_date).days
+    # if delta_days > 0:
+    #     pass
+    # elif delta_days == 0 and (begin_day != end_day):
+    #     pass
+    # else:
+    #     pass
+    # return (
+    #     jsonify(
+    #         {"delta_days": delta_days, "begin_date": begin_date, "end_date": end_date, "begin_day": begin_day, "end_day": end_day}
+    #     ),
+    #     200,
+    # )
+    
+    # face_search_resp = api_face.api_search_face_feature(
+    #     token,
+    #     req["beginTime"],
+    #     req["endTime"],
+    #     req["page"],
+    #     req["pageSize"],
+    #     req["channelIds"],
+    # )
+    # if face_search_resp["desc"] != "Success":
+    #     return jsonify(face_search_resp), 500
+    # data = face_search_resp["data"]["pageData"]
+    # result = []
+    # for item in data:
+    #     result.append(
+    #         {
+    #             "id": item["id"],
+    #         }
+    #     )
+    # return jsonify(
+    #     {
+    #         "code": face_search_resp["code"],
+    #         "message": face_search_resp["desc"],
+    #         "totalCount": face_search_resp["data"]["totalCount"],
+    #         "data": result,
+    #     }
+    # ), 200

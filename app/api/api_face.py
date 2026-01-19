@@ -77,13 +77,34 @@ class APIFace:
         ).json()
         return resp
 
-    def api_search_face_feature(self, token, beginTime, endTime, page, pageSize, currentPage, channelIds):
+    def api_search_face_feature(self, token, beginTime, endTime, page, pageSize, channelIds):
         payload = {
             "beginTime": beginTime,
             "endTime": endTime,
             "page": page,
             "pageSize": pageSize,
-            "currentPage": currentPage,
+            "currentPage": "1",
+            "orderType": "1",
+            "orderDirection": "1",
+            "channelIds": channelIds,
+        }
+        resp = requests.post(
+            url="https://"
+            + dss_api_url
+            + "/iams/api/v1.1/face/detection/record/search-by-feature/page",
+            headers={"X-Subject-Token": token},
+            json=payload,
+            verify=False,
+        ).json()
+        return resp
+    
+    def api_search_face_feature_last_id(self, token, beginTime, endTime, channelIds):
+        payload = {
+            "beginTime": beginTime,
+            "endTime": endTime,
+            "page": "1",
+            "pageSize": "1",
+            "currentPage": "1",
             "orderType": "1",
             "orderDirection": "1",
             "channelIds": channelIds,
