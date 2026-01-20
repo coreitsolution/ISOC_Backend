@@ -252,22 +252,51 @@ def api_face_search_test():
     begin_time = req["beginTime"]
     end_time = req["endTime"]
     date_list = utils.generate_date_list(begin_time, end_time)
-    return jsonify({"date_list": date_list}), 200
-    # begin_day = begin_date.strftime("%Y-%m-%d")
-    # end_day = end_date.strftime("%Y-%m-%d")
-    # delta_days = (end_date - begin_date).days
-    # if delta_days > 0:
-    #     pass
-    # elif delta_days == 0 and (begin_day != end_day):
-    #     pass
-    # else:
-    #     pass
-    # return (
-    #     jsonify(
-    #         {"delta_days": delta_days, "begin_date": begin_date, "end_date": end_date, "begin_day": begin_day, "end_day": end_day}
-    #     ),
-    #     200,
-    # )
+    face_list = []
+    item_count = 0
+    page_count = 0
+    for date_item in date_list:
+        face_search_resp_last_id = api_face.api_search_face_feature_last_id(
+            token,
+            date_item["begin_in_day_timestamp"],
+            date_item["end_in_day_timestamp"],
+            req["channelIds"],
+        )
+        face_search_resp_first_id = api_face.api_search_face_feature_first_id(
+            token,
+            date_item["begin_in_day_timestamp"],
+            date_item["end_in_day_timestamp"], 
+            req["channelIds"],
+        )
+        if face_search_resp_last_id["desc"] == "Success" and face_search_resp_first_id["desc"] == "Success":
+            face_data = face_search_resp_last_id["data"]["pageData"]
+            face_data_first = face_search_resp_first_id["data"]["pageData"]
+            if len(face_data) > 0:
+                id = face_data[0]["id"]
+                first_id = face_data_first[0]["id"]
+                id_number = int(id[-8:])
+                first_id_number = int(first_id[-8:])
+                item_count += id_number
+                page_count += int(id_number / int(req["pageSize"]))
+                face_list.append({
+                    "original_last_id": id,
+                    "original_first_id": first_id,
+                    "last_id": id_number,
+                    "first_id": first_id_number,
+                    "date": date_item["date"],
+                    "begin_time": date_item["begin_time"],
+                    "end_time": date_item["end_time"],
+                    "begin_in_day_timestamp": date_item["begin_in_day_timestamp"],
+                    "end_in_day_timestamp": date_item["end_in_day_timestamp"],
+                    # "face_data": face_data,
+                    # 'face_data_first': face_data_first
+                })
+        result = {
+            "item_count": item_count,
+            "page_count": page_count,
+            "data": face_list
+        }
+    return jsonify({"face_list": result}), 200
     
     # face_search_resp = api_face.api_search_face_feature(
     #     token,
