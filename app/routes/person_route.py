@@ -109,3 +109,16 @@ def api_person_update():
             )
     person_update_resp = api_person.api_person_update(token, req)
     return jsonify(person_update_resp)
+
+
+@person_route.route("/dss/api/v1/person/delete", methods=["POST"])
+def api_person_delete():
+    resp = utils.get_token()
+    token = resp["token"]
+    req = request.json
+    req_key = ["personIds"]
+    not_in_keys = utils.key_validation(req, req_key)
+    if not_in_keys:
+        return jsonify({"error": f"missing keys: {', '.join(not_in_keys)}"}), 400
+    person_delete_resp = api_person.api_person_delete(token, req["personIds"])
+    return jsonify(person_delete_resp)

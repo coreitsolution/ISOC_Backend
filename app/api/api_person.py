@@ -118,3 +118,15 @@ class APIPerson:
             verify=False,
         ).json()
         return resp
+    
+    def api_person_delete(self, token, personIds):
+        payload = {
+            "personIds": personIds,
+        }
+        resp = requests.post(
+            url="https://" + dss_api_url + "/obms/api/v1.1/acs/person-group/person/delete/batch",
+            headers={"X-Subject-Token": token, "Content-Type": "application/json"},
+            data=json.dumps(payload),
+            verify=False,
+        ).json()
+        return resp

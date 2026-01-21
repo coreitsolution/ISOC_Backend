@@ -1,5 +1,6 @@
 import datetime
 import logging
+import math
 import time
 from flask import Blueprint, jsonify, request
 from utils.utils import Utils
@@ -114,70 +115,70 @@ def api_dss_face_search():
         return jsonify({"error": "faceImageData base64 is invalid"}), 400
 
 
-@face_route.route("/dss/api/v1/face/search/feature", methods=["POST"])
-def api_face_search():
-    resp = utils.get_token()
-    token = resp["token"]
-    credential = resp["credential"]
-    req = request.json
-    not_in_keys = []
-    req_key = ["beginTime", "endTime", "page", "pageSize", "currentPage", "channelIds"]
-    not_in_keys = utils.key_validation(req, req_key)
-    if not_in_keys:
-        return jsonify({"error": f"missing keys: {', '.join(not_in_keys)}"}), 400
+# @face_route.route("/dss/api/v1/face/search/feature", methods=["POST"])
+# def api_face_search():
+#     resp = utils.get_token()
+#     token = resp["token"]
+#     credential = resp["credential"]
+#     req = request.json
+#     not_in_keys = []
+#     req_key = ["beginTime", "endTime", "page", "pageSize", "currentPage", "channelIds"]
+#     not_in_keys = utils.key_validation(req, req_key)
+#     if not_in_keys:
+#         return jsonify({"error": f"missing keys: {', '.join(not_in_keys)}"}), 400
 
-    face_search_resp = api_face.api_search_face_feature(
-        token,
-        req["beginTime"],
-        req["endTime"],
-        req["page"],
-        req["pageSize"],
-        req["currentPage"],
-        req["channelIds"],
-    )
-    if face_search_resp["desc"] != "Success":
-        return jsonify(face_search_resp), 500
-    data = face_search_resp["data"]["pageData"]
-    result = []
-    if len(data) > 0:
-        for item in data:
-            face_base64 = ""
-            picture_base64 = ""
-            face_base64 = utils.image_url_to_base64(
-                item["faceImageUrl"] + "?token=" + credential
-            )
-            picture_base64 = utils.image_url_to_base64(
-                item["pictureUrl"] + "?token=" + credential
-            )
-            result.append(
-                {
-                    "id": item["id"],
-                    "channelId": item["channelId"],
-                    "channelName": item["channelName"],
-                    "recordSource": item["recordSource"],
-                    "faceImageUrl": item["faceImageUrl"],
-                    "faceBase64": face_base64,
-                    "pictureUrl": item["pictureUrl"],
-                    "pictureBase64": picture_base64,
-                    "captureTime": item["captureTime"],
-                    "personId": item["personId"],
-                    "personName": item["personName"],
-                    "personSimilarity": item["personSimilarity"],
-                    "age": item["age"],
-                    "gender": item["gender"],
-                }
-            )
-    return (
-        jsonify(
-            {
-                "code": face_search_resp["code"],
-                "message": face_search_resp["desc"],
-                "totalCount": face_search_resp["data"]["totalCount"],
-                "data": result,
-            }
-        ),
-        200,
-    )
+#     face_search_resp = api_face.api_search_face_feature(
+#         token,
+#         req["beginTime"],
+#         req["endTime"],
+#         req["page"],
+#         req["pageSize"],
+#         req["currentPage"],
+#         req["channelIds"],
+#     )
+#     if face_search_resp["desc"] != "Success":
+#         return jsonify(face_search_resp), 500
+#     data = face_search_resp["data"]["pageData"]
+#     result = []
+#     if len(data) > 0:
+#         for item in data:
+#             face_base64 = ""
+#             picture_base64 = ""
+#             face_base64 = utils.image_url_to_base64(
+#                 item["faceImageUrl"] + "?token=" + credential
+#             )
+#             picture_base64 = utils.image_url_to_base64(
+#                 item["pictureUrl"] + "?token=" + credential
+#             )
+#             result.append(
+#                 {
+#                     "id": item["id"],
+#                     "channelId": item["channelId"],
+#                     "channelName": item["channelName"],
+#                     "recordSource": item["recordSource"],
+#                     "faceImageUrl": item["faceImageUrl"],
+#                     "faceBase64": face_base64,
+#                     "pictureUrl": item["pictureUrl"],
+#                     "pictureBase64": picture_base64,
+#                     "captureTime": item["captureTime"],
+#                     "personId": item["personId"],
+#                     "personName": item["personName"],
+#                     "personSimilarity": item["personSimilarity"],
+#                     "age": item["age"],
+#                     "gender": item["gender"],
+#                 }
+#             )
+#     return (
+#         jsonify(
+#             {
+#                 "code": face_search_resp["code"],
+#                 "message": face_search_resp["desc"],
+#                 "totalCount": face_search_resp["data"]["totalCount"],
+#                 "data": result,
+#             }
+#         ),
+#         200,
+#     )
 
 
 @face_route.route("/dss/api/v1/face/search/stop", methods=["POST"])
@@ -238,10 +239,11 @@ def api_face_search_download():
     return jsonify(face_search_download_resp)
 
 
-@face_route.route("/dss/api/v1/face/search/feature/test", methods=["POST"])
+@face_route.route("/dss/api/v1/face/search/feature", methods=["POST"])
 def api_face_search_test():
     resp = utils.get_token()
     token = resp["token"]
+    credential = resp["credential"]
     req = request.json
     not_in_keys = []
     req_key = ["beginTime", "endTime", "page", "pageSize", "channelIds"]
@@ -255,6 +257,7 @@ def api_face_search_test():
     face_list = []
     item_count = 0
     page_count = 0
+    item_count = 0
     for date_item in date_list:
         face_search_resp_last_id = api_face.api_search_face_feature_last_id(
             token,
@@ -276,51 +279,78 @@ def api_face_search_test():
                 first_id = face_data_first[0]["id"]
                 id_number = int(id[-8:])
                 first_id_number = int(first_id[-8:])
-                item_count += id_number
-                page_count += int(id_number / int(req["pageSize"]))
-                face_list.append({
-                    "original_last_id": id,
-                    "original_first_id": first_id,
-                    "last_id": id_number,
-                    "first_id": first_id_number,
-                    "date": date_item["date"],
-                    "begin_time": date_item["begin_time"],
-                    "end_time": date_item["end_time"],
-                    "begin_in_day_timestamp": date_item["begin_in_day_timestamp"],
-                    "end_in_day_timestamp": date_item["end_in_day_timestamp"],
-                    # "face_data": face_data,
-                    # 'face_data_first': face_data_first
-                })
-        result = {
-            "item_count": item_count,
-            "page_count": page_count,
-            "data": face_list
-        }
-    return jsonify({"face_list": result}), 200
-    
-    # face_search_resp = api_face.api_search_face_feature(
-    #     token,
-    #     req["beginTime"],
-    #     req["endTime"],
-    #     req["page"],
-    #     req["pageSize"],
-    #     req["channelIds"],
-    # )
-    # if face_search_resp["desc"] != "Success":
-    #     return jsonify(face_search_resp), 500
-    # data = face_search_resp["data"]["pageData"]
-    # result = []
-    # for item in data:
-    #     result.append(
-    #         {
-    #             "id": item["id"],
-    #         }
-    #     )
-    # return jsonify(
-    #     {
-    #         "code": face_search_resp["code"],
-    #         "message": face_search_resp["desc"],
-    #         "totalCount": face_search_resp["data"]["totalCount"],
-    #         "data": result,
+                if item_count == 0:
+                    item_count += (id_number - first_id_number)
+                else:
+                    item_count += id_number
+                # face_list.append({
+                #     "original_last_id": id,
+                #     "original_first_id": first_id,
+                #     "last_id": id_number,
+                #     "first_id": first_id_number,
+                #     "date": date_item["date"],
+                #     "begin_time": date_item["begin_time"],
+                #     "end_time": date_item["end_time"],
+                #     "begin_in_day_timestamp": date_item["begin_in_day_timestamp"],
+                #     "end_in_day_timestamp": date_item["end_in_day_timestamp"],
+                #     # "face_data": face_data,
+                #     # 'face_data_first': face_data_first
+                # })
+                item_count += 1
+        page_count = int(math.ceil(item_count / int(req["pageSize"])))
+    #     result = {
+    #         "item_count": item_count,
+    #         "page_count": int(math.ceil(item_count / int(req["pageSize"]))),
+    #         "data": face_list
     #     }
-    # ), 200
+    # return jsonify({"face_list": result}), 200
+    
+    face_search_resp = api_face.api_search_face_feature(
+        token,
+        req["beginTime"],
+        req["endTime"],
+        req["page"],
+        req["pageSize"],
+        req["channelIds"],
+    )
+    if face_search_resp["desc"] != "Success":
+        return jsonify(face_search_resp), 500
+    data = face_search_resp["data"]["pageData"]
+    result = []
+    if len(data) > 0:
+        for item in data:
+            face_base64 = ""
+            picture_base64 = ""
+            face_base64 = utils.image_url_to_base64(
+                item["faceImageUrl"] + "?token=" + credential
+            )
+            picture_base64 = utils.image_url_to_base64(
+                item["pictureUrl"] + "?token=" + credential
+            )
+            result.append(
+                {
+                    "id": item["id"],
+                    "channelId": item["channelId"],
+                    "channelName": item["channelName"],
+                    "recordSource": item["recordSource"],
+                    "faceImageUrl": item["faceImageUrl"],
+                    "faceBase64": face_base64,
+                    "pictureUrl": item["pictureUrl"],
+                    "pictureBase64": picture_base64,
+                    "captureTime": item["captureTime"],
+                    "personId": item["personId"],
+                    "personName": item["personName"],
+                    "personSimilarity": item["personSimilarity"],
+                    "age": item["age"],
+                    "gender": item["gender"],
+                }
+            )
+    return jsonify(
+        {
+            "code": face_search_resp["code"],
+            "message": face_search_resp["desc"],
+            "totalCount": item_count,
+            "pageCount": page_count,
+            "data": result,
+        }
+    ), 200
