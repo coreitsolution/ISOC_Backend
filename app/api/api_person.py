@@ -2,15 +2,16 @@ import requests
 import os
 import logging
 from flask import json
+from utils.utils import Utils
 from dotenv import load_dotenv
 
 load_dotenv()
 
 dss_api_url = os.getenv("DSS_API_URL")
-
+utils = Utils()
 
 class APIPerson:
-    def api_person_list(self, token, req):
+    def api_person_list(self, token, req, credential):
         resp = requests.get(
             url="https://"
             + dss_api_url
@@ -22,6 +23,9 @@ class APIPerson:
         totalCount = resp["data"]["totalCount"]
         data = resp["data"]["pageData"]
         for person in data:
+            face_base64 = utils.image_url_to_base64(
+                person["baseInfo"]["facePicture"] + "?token=" + credential
+            )
             person_info = {
                 "personId": person["baseInfo"]["personId"],
                 "firstName": person["baseInfo"]["firstName"],
@@ -31,9 +35,15 @@ class APIPerson:
                 "orgName": person["baseInfo"]["orgName"],
                 "email": person["baseInfo"]["email"],
                 "tel": person["baseInfo"]["tel"],
+                "faceBase64": face_base64,
             }
             result.append(person_info)
-        return {"code": resp["code"], "desc": resp["desc"], "totalCount": totalCount, "data": result}
+        return {
+            "code": resp["code"],
+            "desc": resp["desc"],
+            "totalCount": totalCount,
+            "data": result,
+        }
 
     def api_person_detail(self, token, person_id):
         resp = requests.get(
@@ -47,7 +57,9 @@ class APIPerson:
         payload = {
             "baseInfo": {
                 "personId": person_data["personId"],
-                "lastName": person_data["lastName"] if "lastName" in person_data else "",
+                "lastName": (
+                    person_data["lastName"] if "lastName" in person_data else ""
+                ),
                 "firstName": person_data["firstName"],
                 "gender": person_data["gender"],
                 "orgCode": person_data["orgCode"],
@@ -85,7 +97,9 @@ class APIPerson:
         payload = {
             "baseInfo": {
                 "personId": person_data["personId"],
-                "lastName": person_data["lastName"] if "lastName" in person_data else "",
+                "lastName": (
+                    person_data["lastName"] if "lastName" in person_data else ""
+                ),
                 "firstName": person_data["firstName"],
                 "gender": person_data["gender"],
                 "orgCode": person_data["orgCode"],
@@ -112,19 +126,23 @@ class APIPerson:
             "entranceInfo": {},
         }
         resp = requests.put(
-            url="https://" + dss_api_url + f"/obms/api/v1.1/acs/person/{person_data['personId']}",
+            url="https://"
+            + dss_api_url
+            + f"/obms/api/v1.1/acs/person/{person_data['personId']}",
             headers={"X-Subject-Token": token, "Content-Type": "application/json"},
             data=json.dumps(payload),
             verify=False,
         ).json()
         return resp
-    
+
     def api_person_delete(self, token, personIds):
         payload = {
             "personIds": personIds,
         }
         resp = requests.post(
-            url="https://" + dss_api_url + "/obms/api/v1.1/acs/person-group/person/delete/batch",
+            url="https://"
+            + dss_api_url
+            + "/obms/api/v1.1/acs/person-group/person/delete/batch",
             headers={"X-Subject-Token": token, "Content-Type": "application/json"},
             data=json.dumps(payload),
             verify=False,

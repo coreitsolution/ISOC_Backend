@@ -11,12 +11,13 @@ api_person = APIPerson()
 def api_person_list():
     resp = utils.get_token()
     token = resp["token"]
+    credential = resp["credential"]
     req = request.json
     req_key = ["page", "pageSize", "orgCode"]
     not_in_keys = utils.key_validation(req, req_key)
     if not_in_keys:
         return jsonify({"error": f"missing keys: {', '.join(not_in_keys)}"}), 400
-    person_list_resp = api_person.api_person_list(token, req)
+    person_list_resp = api_person.api_person_list(token, req, credential)
     return jsonify(person_list_resp)
 
 
