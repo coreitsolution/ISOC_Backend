@@ -119,8 +119,7 @@ class APIPerson:
             },
             "accessInfo": {"accessType": "0"},
             "faceComparisonInfo": {
-                "enableFaceComparisonGroup": "1",
-                "faceComparisonGroupId": "1",
+                "enableFaceComparisonGroup": "0",
             },
             "entranceInfo": {},
         }
