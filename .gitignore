@@ -128,3 +128,4 @@ pg_data
 pgadmin_data
 
 __pycache__/
+app-mqtt/kafka/data/

@@ -1,8 +1,23 @@
 version: "3.0"
 services:
-  app:
-    build: 
-      context: .
-      dockerfile: ./Dockerfile
+  # app:
+  #   build: 
+  #     context: .
+  #     dockerfile: ./Dockerfile
+  #   ports:
+  #     - 3334:3334
+  pgsql:
+    image: postgres:16
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: qiKQc6mkJumfOaErq5g3sJgtXN17p0FD
+      POSTGRES_USER: coreit
+      POSTGRES_DB: isoc_backend
+      PGDATA: '/var/lib/postgresql/data'
+    volumes:
+      - ./pg_data:/var/lib/postgresql/data
     ports:
-      - 3334:3334
+      - 5433:5432
+
+volumes:
+  pg-data:

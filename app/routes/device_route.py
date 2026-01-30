@@ -1,3 +1,4 @@
+import logging
 from flask import Blueprint, app, jsonify, request
 from utils.utils import Utils
 from api.api_device import APIDevice
@@ -12,7 +13,23 @@ def api_device_tree():
     resp = utils.get_token()
     token = resp["token"]
     device_tree_resp = api_device.api_get_device_tree(token)
-    return jsonify(device_tree_resp)
+    channels = []
+    if device_tree_resp["desc"] == "Success":
+        devices = device_tree_resp["data"]["devices"]
+        for device in devices:
+            units = device["units"]
+            for unit in units:
+                if unit["assistStream"] != None:
+                    channels.append({
+                        "channelCode": unit["channels"][0]["channelCode"],
+                        "channelName": unit["channels"][0]["channelName"],
+                        "deviceIp": device["deviceIp"],
+                        "deviceModelStr": device["deviceModelStr"],
+                        "name": device["name"],
+                        "orgCode": device["orgCode"],
+                        "sn": device["sn"]
+                    })
+    return jsonify(channels)
 
 
 @device_route.route("/dss/api/v1/device/info/<device_id>", methods=["GET"])

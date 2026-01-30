@@ -19,6 +19,7 @@ import psycopg2
 from psycopg2.extras import Json
 import uuid
 from datetime import datetime
+from confluent_kafka import Producer
 
 load_dotenv()
 
@@ -31,6 +32,16 @@ dss_mqtt = os.getenv("MQTT_BROKER_URL", dss_host)
 dss_mqtt_port = int(os.getenv("MQTT_BROKER_PORT", 1883))
 dss_username = os.getenv("DSS_USERNAME")
 dss_password = os.getenv("DSS_PASSWORD")
+
+kafka_topic_detect_person = "dss.event.detect.person"
+conf = {
+    "bootstrap.servers": "localhost:29092",
+    # "sasl.mechanism": "PLAIN",
+    # "security.protocol": "SASL_SSL",
+    # "sasl.username": "admin",
+    # "sasl.password": "1q2w3e",
+}
+producer = Producer(**conf)
 
 ################################# DSS Authentication #################################
 
@@ -155,7 +166,11 @@ def on_message(client, userdata, msg):
         payload_json = msg.payload.decode('utf-8')
         json_data = json.loads(payload_json)
         logging.info(f"json_data: {json_data['info']}")
-        insert_mq_log(msg.topic, json_data)
+        if "method" in json_data:
+            if json_data["method"] == "brms.notifyAlarms":
+                producer.produce(kafka_topic_detect_person, key="", value=str(json_data['info']), callback=kafka_callback)
+                producer.flush()
+                insert_mq_log(msg.topic, json_data)
 
 def on_subscribe(mqttc, obj, mid, reason_code_list):
     logging.info("Subscribed: " + str(mid) + " " + str(reason_code_list))
@@ -163,7 +178,14 @@ def on_subscribe(mqttc, obj, mid, reason_code_list):
 
 def on_error(headers, message):
     logging.error('received an error "%s"' % message)
-    
+
+
+################################### kafka #################################
+def kafka_callback(err, msg):
+    if err is not None:
+        logging.error(f'Message delivery failed: {err}')
+    else:
+        logging.info(f'Message delivered to {msg.topic()} [{msg.partition()}]')
     
 ################################### App Start #################################
 if __name__ == '__main__':
