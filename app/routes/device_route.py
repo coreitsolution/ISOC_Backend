@@ -29,7 +29,11 @@ def api_device_tree():
                         "orgCode": device["orgCode"],
                         "sn": device["sn"]
                     })
-    return jsonify(channels)
+    return jsonify({
+        "code": 1000,
+        "desc": "Success",
+        "data": channels
+    })
 
 
 @device_route.route("/dss/api/v1/device/info/<device_id>", methods=["GET"])
