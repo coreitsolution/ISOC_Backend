@@ -45,6 +45,7 @@ producer = Producer(**conf)
 
 ################################# DSS Authentication #################################
 
+
 def first_authentication():
     response = requests.post(
         url="https://" + dss_host + "/brms/api/v1.0/accounts/authorize",
@@ -108,7 +109,9 @@ def aes_decrypt(word, secret_key, secret_vector):
     decrypted_word = unpad(cipher.decrypt(encrypted_hex_word), AES.block_size)
     return decrypted_word.decode("utf-8")
 
+
 ################################# PostgreSQL #################################
+
 
 def get_db_connection():
     """Establish connection to PostgreSQL database"""
@@ -125,28 +128,29 @@ def get_db_connection():
         logging.error(f"Database connection error: {e}")
         return None
 
+
 def insert_mq_log(topic, message):
     """Insert MQTT message log into PostgreSQL database"""
     conn = get_db_connection()
     if conn is None:
         return False
-    
+
     try:
         with conn.cursor() as cursor:
             mq_logs_id = str(uuid.uuid4())
             created_at = datetime.now()
-            
+
             insert_query = """
             INSERT INTO mq_logs (mq_logs_id, mq_topic, mq_message, created_at)
             VALUES (%s, %s, %s, %s)
             """
-            
+
             cursor.execute(insert_query, (mq_logs_id, topic, Json(message), created_at))
             conn.commit()
-            
+
             logging.info(f"Inserted MQ log for topic: {topic}")
             return True
-            
+
     except Exception as e:
         logging.error(f"Error inserting MQ log: {e}")
         conn.rollback()
@@ -154,29 +158,50 @@ def insert_mq_log(topic, message):
     finally:
         conn.close()
 
+
 ################################# DSS MQTT #################################
 def on_connect(client, userdata, flags, reason_code):
-        if reason_code == 0:
-            logging.info("Connected to MQTT Broker!")
-            # client.subscribe("your/topic")
-        else:
-            logging.error(f"Failed to connect, return code {reason_code}")
+    if reason_code == 0:
+        logging.info("Connected to MQTT Broker!")
+        # client.subscribe("your/topic")
+    else:
+        logging.error(f"Failed to connect, return code {reason_code}")
+
 
 def on_message(client, userdata, msg):
-        payload_json = msg.payload.decode('utf-8')
-        json_data = json.loads(payload_json)
-        logging.info(f"json_data: {json_data['info']}")
-        if "method" in json_data:
-            logging.info(f"Received MQTT message on topic {msg.topic}: {json_data}")
-            logging.info(f"method: {json_data['method']}")
-            if json_data["method"] == "brms.notifyAlarms":
-                producer.produce(kafka_topic_detect_person, key="", value=str(json_data['info']), callback=kafka_callback)
-                producer.flush()
-                # insert_mq_log(msg.topic, json_data)
+    payload_json = msg.payload.decode("utf-8")
+    json_data = json.loads(payload_json)
+    logging.info(f"json_data: {json_data['info']}")
+    if "method" in json_data:
+        logging.info(f"Received MQTT message on topic {msg.topic}: {json_data}")
+        logging.info(f"method: {json_data['method']}")
+        if json_data["method"] == "brms.notifyAlarms":
+            info = json_data["info"]
+            resp = {
+                "deviceCode": "1000004",
+                "channelId": "1000003$1$0$0",
+                "alarmCode": "{8C2C8056-D0A7-454B-845B-C566746D3B42}",
+                "alarmDate": "1547014708",
+                "personId": "31405411",
+                "personName": "Jack",
+                "captureFaceImageBase64": "",
+                "personFaceImageBase64": "",
+                "similarity": "50",
+            }
+            producer.produce(
+                kafka_topic_detect_person,
+                key="",
+                value=str(info),
+                callback=kafka_callback,
+            )
+            producer.flush()
+            # insert_mq_log(msg.topic, json_data)
+
 
 def on_subscribe(mqttc, obj, mid, reason_code_list):
     logging.info("Subscribed: " + str(mid) + " " + str(reason_code_list))
     logging.info("Subscription successful.")
+
 
 def on_error(headers, message):
     logging.error('received an error "%s"' % message)
@@ -185,25 +210,39 @@ def on_error(headers, message):
 ################################### kafka #################################
 def kafka_callback(err, msg):
     if err is not None:
-        logging.error(f'Message delivery failed: {err}')
+        logging.error(f"Message delivery failed: {err}")
     else:
-        logging.info(f'Message delivered to {msg.topic()} [{msg.partition()}]')
-    
+        logging.info(f"Message delivered to {msg.topic()} [{msg.partition()}]")
+
+
 ################################### App Start #################################
-if __name__ == '__main__':
+if __name__ == "__main__":
     key = RSA.generate(2048)
-    private_key = key.export_key().decode('utf-8')
-    public_key = key.publickey().export_key().decode('utf-8').replace("-----BEGIN PUBLIC KEY-----", "").replace("-----END PUBLIC KEY-----", "").replace("\n", "")
+    private_key = key.export_key().decode("utf-8")
+    public_key = (
+        key.publickey()
+        .export_key()
+        .decode("utf-8")
+        .replace("-----BEGIN PUBLIC KEY-----", "")
+        .replace("-----END PUBLIC KEY-----", "")
+        .replace("\n", "")
+    )
     first_authentication_resp = first_authentication()
-    signature = get_signature(first_authentication_resp['realm'], first_authentication_resp['randomKey'])
-    second_authentication_resp = second_authentication(signature, first_authentication_resp['randomKey'], public_key)
-    secret_key = rsa_decrypt(second_authentication_resp['secretKey'], private_key)
-    secret_vector = rsa_decrypt(second_authentication_resp['secretVector'], private_key)
-    mq_credentials = get_mq_credentials(second_authentication_resp['token'])
-    decrypted_pass = aes_decrypt(mq_credentials['data']['password'], secret_key, secret_vector)
+    signature = get_signature(
+        first_authentication_resp["realm"], first_authentication_resp["randomKey"]
+    )
+    second_authentication_resp = second_authentication(
+        signature, first_authentication_resp["randomKey"], public_key
+    )
+    secret_key = rsa_decrypt(second_authentication_resp["secretKey"], private_key)
+    secret_vector = rsa_decrypt(second_authentication_resp["secretVector"], private_key)
+    mq_credentials = get_mq_credentials(second_authentication_resp["token"])
+    decrypted_pass = aes_decrypt(
+        mq_credentials["data"]["password"], secret_key, secret_vector
+    )
     logging.info(f"dss_mq_password: {decrypted_pass}")
-    userId = second_authentication_resp['userId']
-    # userGroupId = second_authentication_resp['userGroupId'] 
+    userId = second_authentication_resp["userId"]
+    # userGroupId = second_authentication_resp['userGroupId']
     # logging.info(f"second_authentication_resp: {second_authentication_resp}")
     userGroupId = "001004"
 
@@ -211,7 +250,7 @@ if __name__ == '__main__':
     topic_event = "mq/event/msg/topic/" + userId
     topic_publish = "mq/common/msg/topic/" + userId
     topic_group = "mq/alarm/msg/group/topic/" + userGroupId
-    mq_username = mq_credentials['data']['userName']
+    mq_username = mq_credentials["data"]["userName"]
 
     client = mqtt.Client()
     client.username_pw_set(mq_username, decrypted_pass)
@@ -219,18 +258,20 @@ if __name__ == '__main__':
     client.on_message = on_message
     client.on_subscribe = on_subscribe
     client.on_log = on_error
-    
-    client.tls_set(certifi.where(), cert_reqs=ssl.CERT_NONE, tls_version=ssl.PROTOCOL_TLSv1_2)   
+
+    client.tls_set(
+        certifi.where(), cert_reqs=ssl.CERT_NONE, tls_version=ssl.PROTOCOL_TLSv1_2
+    )
     logging.info("Connecting to MQTT Broker...")
 
     client.connect(dss_mqtt, dss_mqtt_port, 60)
     logging.info("Connected to MQTT Broker.")
-    
+
     client.subscribe(topic)
     client.subscribe(topic_event)
     client.subscribe(topic_publish)
     client.subscribe(topic_group)
-    
+
     client.loop_start()
 
     try:
@@ -240,4 +281,3 @@ if __name__ == '__main__':
         print("Disconnecting from MQTT Broker.")
         client.loop_stop()
         client.disconnect()
-        
