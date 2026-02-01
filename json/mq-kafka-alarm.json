@@ -1,0 +1,84 @@
+[
+    {
+        "deviceCode": "1000004",
+        "channelSeq": 0,
+        "unitSeq": 0,
+        "unitType": 1,
+        "nodeType": "2",
+        "nodeCode": "1000004$1$0$0",
+        "alarmCode": "{8C2C8056-D0A7-454B-845B-C566746D3B42}",
+        "alarmStat": "1",
+        "alarmType": "4",
+        "alarmGrade": "1",
+        "alarmPicture": "",
+        "alarmPictureSize": null,
+        "alarmDate": "1547014708",
+        "memo": "9876",
+        "eventRemark": "",
+        "screenNum": null,
+        "linkVideoChannels": [
+            {
+                "channelId": "1000003$1$0$0",
+                "channelName": "test",
+                "streamType": "1",
+                "screenId": "0"
+            }
+        ],
+        "linkRecordChannels": [
+            {
+                "channelId": "1000003$1$0$0",
+                "alarmRecordPosition": "2",
+                "streamType": "1",
+                "recordTime": "10",
+                "preRecordTime": "5"
+            }
+        ],
+        "userIds": [
+            1
+        ],
+        "alarmSourceName": "Channel0",
+        "deviceName": "10",
+        "gpsX": null,
+        "gpsY": null,
+        "mapIds": [
+            "1"
+        ],
+        "height": null,
+        "angle": null,
+        "speed": null,
+        "ruleThreshold": 0,
+        "stayNumber": 0,
+        "planTemplateId": "1",
+        "extData": "",
+        "faceRecognitionInfo": {
+            "personId": "31405411",
+            "personName": "Jack",
+            "repositoryId": "100",
+            "repositoryName": "face",
+            "personTypeId": "",
+            "personTypeName": "",
+            "gender": "1",
+            "birthday": "",
+            "nationality": "",
+            "tel": "13012345678",
+            "captureFaceImageUrl": "",
+            "personFaceImageUrl": "",
+            "similarity": "50"
+        },
+        "linkedVoicePrompt": "0",
+        "voicePromptContent": "",
+        "disarmUserIds": [],
+        "allowViewLinkInfo": ""
+    },
+    {
+        "deviceCode": "1000004",
+        "channelId": "1000003$1$0$0",
+        "alarmCode": "{8C2C8056-D0A7-454B-845B-C566746D3B42}",
+        "alarmDate": "1547014708",
+        "personId": "31405411",
+        "personName": "Jack",
+        "captureFaceImageBase64": "",
+        "personFaceImageBase64": "",
+        "similarity": "50"
+    }
+]

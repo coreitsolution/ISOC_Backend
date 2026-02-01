@@ -35,7 +35,7 @@ dss_password = os.getenv("DSS_PASSWORD")
 
 kafka_topic_detect_person = "dss.event.detect.person"
 conf = {
-    "bootstrap.servers": "localhost:29092",
+    "bootstrap.servers": os.getenv("KAFKA_BOKER_URL", "localhost:9092"),
     # "sasl.mechanism": "PLAIN",
     # "security.protocol": "SASL_SSL",
     # "sasl.username": "admin",
@@ -167,10 +167,12 @@ def on_message(client, userdata, msg):
         json_data = json.loads(payload_json)
         logging.info(f"json_data: {json_data['info']}")
         if "method" in json_data:
+            logging.info(f"Received MQTT message on topic {msg.topic}: {json_data}")
+            logging.info(f"method: {json_data['method']}")
             if json_data["method"] == "brms.notifyAlarms":
                 producer.produce(kafka_topic_detect_person, key="", value=str(json_data['info']), callback=kafka_callback)
                 producer.flush()
-                insert_mq_log(msg.topic, json_data)
+                # insert_mq_log(msg.topic, json_data)
 
 def on_subscribe(mqttc, obj, mid, reason_code_list):
     logging.info("Subscribed: " + str(mid) + " " + str(reason_code_list))
