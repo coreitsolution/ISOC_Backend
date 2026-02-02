@@ -182,7 +182,7 @@ def on_message(client, userdata, msg):
                 "channelId": "1000003$1$0$0",
                 "alarmCode": "{8C2C8056-D0A7-454B-845B-C566746D3B42}",
                 "alarmDate": "1547014708",
-                "personId": "31405411",
+                "personId": "8Ujr4N83JuJ2cpjGWLti0fScLdLnn3",
                 "personName": "Jack",
                 "captureFaceImageBase64": "",
                 "personFaceImageBase64": "",
