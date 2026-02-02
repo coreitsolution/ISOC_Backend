@@ -1,6 +1,7 @@
 import base64
 import os
 import time
+import logging
 from confluent_kafka import Producer
 import requests
 
@@ -10,21 +11,20 @@ conf = {
 producer = Producer(**conf)
 
 
-def delivery_report(err, msg):
+def callback(err, msg):
     if err is not None:
-        print(f"Message delivery failed: {err}")
+        logging.error(f"Message delivery failed: {err}")
     else:
-        print(f"Message delivered to {msg.topic()} [{msg.partition()}]")
+        logging.info(f"Message delivered to {msg.topic()} [{msg.partition()}]")
+
 
 def image_url_to_base64(self, image_url):
     try:
         response = requests.get(image_url, verify=False)
         response.raise_for_status()
         image_bytes = response.content
-        content_type = response.headers["content-type"]
         encoded_image = base64.b64encode(image_bytes)
         base64_string = encoded_image.decode("utf-8")
-        # data_uri = f"data:{content_type};base64,{base64_string}"
         return base64_string
     except requests.exceptions.RequestException as e:
         print(f"Error fetching the image: {e}")
@@ -33,9 +33,12 @@ def image_url_to_base64(self, image_url):
         print(f"An unexpected error occurred: {e}")
         return None
 
+
 def main():
     while True:
-        base64_image = image_url_to_base64("https://amic-center.local/api-storage/uploads/images/2026-01-30/112028-YyYoQyfm2fm0.jpg")
+        base64_image = image_url_to_base64(
+            "https://amic-center.local/api-storage/uploads/images/2026-01-30/112028-YyYoQyfm2fm0.jpg"
+        )
         resp = {
             "deviceCode": "1000004",
             "channelId": "1000003$1$0$0",
@@ -47,9 +50,15 @@ def main():
             "personFaceImageBase64": base64_image,
             "similarity": "50",
         }
-        producer.produce("my_topic", key="", value=str(resp), callback=delivery_report)
+        producer.produce(
+            "dss.event.detect.person", key="", value=str(resp), callback=callback
+        )
         producer.flush()
+        logging.info(
+            "Message sent to Kafka topic. dss.event.detect.person successfully."
+        )
         time.sleep(10)
+
 
 if __name__ == "__main__":
     main()
