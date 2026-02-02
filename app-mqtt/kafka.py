@@ -4,7 +4,8 @@ import time
 import logging
 from confluent_kafka import Producer
 import requests
-
+from dotenv import load_dotenv
+load_dotenv()
 conf = {
     "bootstrap.servers": os.getenv("KAFKA_BOKER_URL", "localhost:9092"),
 }
@@ -18,7 +19,7 @@ def callback(err, msg):
         logging.info(f"Message delivered to {msg.topic()} [{msg.partition()}]")
 
 
-def image_url_to_base64(self, image_url):
+def image_url_to_base64(image_url):
     try:
         response = requests.get(image_url, verify=False)
         response.raise_for_status()
