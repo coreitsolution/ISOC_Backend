@@ -1,4 +1,5 @@
 import base64
+import json
 import os
 import time
 import logging
@@ -51,8 +52,9 @@ def main():
             "personFaceImageBase64": base64_image,
             "similarity": "50",
         }
+        json_payload = json.dumps(resp).encode('utf-8')
         producer.produce(
-            "dss.event.detect.person", key="", value=resp, callback=callback
+            "dss.event.detect.person", key="", value=json_payload, callback=callback
         )
         producer.flush()
         logging.info(
