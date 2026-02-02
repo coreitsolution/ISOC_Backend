@@ -35,12 +35,17 @@ def image_url_to_base64(image_url):
         print(f"An unexpected error occurred: {e}")
         return None
 
+def read_file(file_path):
+    with open(file_path, "r") as file:
+        return file.read()
 
 def main():
     while True:
-        base64_image = image_url_to_base64(
-            "https://amic-center.local/api-storage/uploads/images/2026-01-30/112028-YyYoQyfm2fm0.jpg"
-        )
+        # base64_image = image_url_to_base64(
+        #     "https://amic-center.local/api-storage/uploads/images/2026-01-30/112028-YyYoQyfm2fm0.jpg"
+        # )
+        face_base = read_file("face_base.txt")
+        capture_base = read_file("capture_base.txt")
         resp = {
             "deviceCode": "1000004",
             "channelId": "1000003$1$0$0",
@@ -48,8 +53,8 @@ def main():
             "alarmDate": "1547014708",
             "personId": "8Ujr4N83JuJ2cpjGWLti0fScLdLnn3",
             "personName": "Jack",
-            "captureFaceImageBase64": base64_image,
-            "personFaceImageBase64": base64_image,
+            "captureFaceImageBase64": capture_base,
+            "personFaceImageBase64": face_base,
             "similarity": "50",
         }
         json_payload = json.dumps(resp).encode('utf-8')
