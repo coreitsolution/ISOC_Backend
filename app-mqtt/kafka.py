@@ -52,7 +52,7 @@ def main():
             "similarity": "50",
         }
         producer.produce(
-            "dss.event.detect.person", key="", value=str(resp), callback=callback
+            "dss.event.detect.person", key="", value=resp, callback=callback
         )
         producer.flush()
         logging.info(

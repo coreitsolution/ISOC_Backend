@@ -33,15 +33,11 @@ dss_mqtt_port = int(os.getenv("MQTT_BROKER_PORT", 1883))
 dss_username = os.getenv("DSS_USERNAME")
 dss_password = os.getenv("DSS_PASSWORD")
 
-kafka_topic_detect_person = "dss.event.detect.person"
-conf = {
-    "bootstrap.servers": os.getenv("KAFKA_BOKER_URL", "localhost:9092"),
-    # "sasl.mechanism": "PLAIN",
-    # "security.protocol": "SASL_SSL",
-    # "sasl.username": "admin",
-    # "sasl.password": "1q2w3e",
-}
-producer = Producer(**conf)
+# kafka_topic_detect_person = "dss.event.detect.person"
+# conf = {
+#     "bootstrap.servers": os.getenv("KAFKA_BOKER_URL", "localhost:9092"),
+# }
+# producer = Producer(**conf)
 
 ################################# DSS Authentication #################################
 
@@ -172,30 +168,30 @@ def on_message(client, userdata, msg):
     payload_json = msg.payload.decode("utf-8")
     json_data = json.loads(payload_json)
     logging.info(f"json_data: {json_data['info']}")
-    if "method" in json_data:
-        logging.info(f"Received MQTT message on topic {msg.topic}: {json_data}")
-        logging.info(f"method: {json_data['method']}")
-        if json_data["method"] == "brms.notifyAlarms":
-            info = json_data["info"]
-            resp = {
-                "deviceCode": "1000004",
-                "channelId": "1000003$1$0$0",
-                "alarmCode": "{8C2C8056-D0A7-454B-845B-C566746D3B42}",
-                "alarmDate": "1547014708",
-                "personId": "8Ujr4N83JuJ2cpjGWLti0fScLdLnn3",
-                "personName": "Jack",
-                "captureFaceImageBase64": "",
-                "personFaceImageBase64": "",
-                "similarity": "50",
-            }
-            producer.produce(
-                kafka_topic_detect_person,
-                key="",
-                value=str(info),
-                callback=kafka_callback,
-            )
-            producer.flush()
-            # insert_mq_log(msg.topic, json_data)
+    # if "method" in json_data:
+    #     logging.info(f"Received MQTT message on topic {msg.topic}: {json_data}")
+    #     logging.info(f"method: {json_data['method']}")
+    #     if json_data["method"] == "brms.notifyAlarms":
+    #         info = json_data["info"]
+    #         resp = {
+    #             "deviceCode": "1000004",
+    #             "channelId": "1000003$1$0$0",
+    #             "alarmCode": "{8C2C8056-D0A7-454B-845B-C566746D3B42}",
+    #             "alarmDate": "1547014708",
+    #             "personId": "8Ujr4N83JuJ2cpjGWLti0fScLdLnn3",
+    #             "personName": "Jack",
+    #             "captureFaceImageBase64": "",
+    #             "personFaceImageBase64": "",
+    #             "similarity": "50",
+    #         }
+    #         producer.produce(
+    #             kafka_topic_detect_person,
+    #             key="",
+    #             value=str(info),
+    #             callback=kafka_callback,
+    #         )
+    #         producer.flush()
+    insert_mq_log(msg.topic, json_data)
 
 
 def on_subscribe(mqttc, obj, mid, reason_code_list):
