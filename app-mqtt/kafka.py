@@ -48,11 +48,14 @@ def read_file(file_path):
 
 def main():
     while True:
-        # base64_image = image_url_to_base64(
-        #     "https://amic-center.local/api-storage/uploads/images/2026-01-30/112028-YyYoQyfm2fm0.jpg"
-        # )
-        face_base64 = read_file("face_base64.txt")
-        capture_base64 = read_file("capture_base64.txt")
+        personFaceImageBase64 = image_url_to_base64(
+            "https://amic-center.local/api-storage/uploads/images/2026-02-02/143933-6oEPSf4zQ0C7.jpg"
+        )
+        captureFaceImageBase64 = image_url_to_base64(
+            "https://amic-center.local/api-storage/uploads/images/2026-02-02/143933-1ghBwLi2XghM.jpg"
+        )
+        # face_base64 = read_file("face_base64.txt")
+        # capture_base64 = read_file("capture_base64.txt")
         resp = {
             "deviceCode": "1000004",
             "channelId": "1000003$1$0$0",
@@ -60,8 +63,8 @@ def main():
             "alarmDate": "1547014708",
             "personId": "8Ujr4N83JuJ2cpjGWLti0fScLdLnn3",
             "personName": "Jack",
-            "captureFaceImageBase64": capture_base64,
-            "personFaceImageBase64": face_base64,
+            "captureFaceImageBase64": captureFaceImageBase64,
+            "personFaceImageBase64": personFaceImageBase64,
             "similarity": "50",
         }
         json_payload = json.dumps(resp).encode('utf-8')
