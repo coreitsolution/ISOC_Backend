@@ -36,16 +36,23 @@ def image_url_to_base64(image_url):
         return None
 
 def read_file(file_path):
-    with open(file_path, "r") as file:
-        return file.read()
+    try:
+        with open(file_path, 'r') as file:
+            content = file.read() 
+        return content
+    except FileNotFoundError:
+        print(f"Error: The file '{file_path}' was not found.")
+        return None
+    except Exception as e:
+        print(f"An error occurred: {e}")
 
 def main():
     while True:
         # base64_image = image_url_to_base64(
         #     "https://amic-center.local/api-storage/uploads/images/2026-01-30/112028-YyYoQyfm2fm0.jpg"
         # )
-        face_base = read_file("face_base.txt")
-        capture_base = read_file("capture_base.txt")
+        face_base64 = read_file("face_base64.txt")
+        capture_base64 = read_file("capture_base64.txt")
         resp = {
             "deviceCode": "1000004",
             "channelId": "1000003$1$0$0",
@@ -53,8 +60,8 @@ def main():
             "alarmDate": "1547014708",
             "personId": "8Ujr4N83JuJ2cpjGWLti0fScLdLnn3",
             "personName": "Jack",
-            "captureFaceImageBase64": capture_base,
-            "personFaceImageBase64": face_base,
+            "captureFaceImageBase64": capture_base64,
+            "personFaceImageBase64": face_base64,
             "similarity": "50",
         }
         json_payload = json.dumps(resp).encode('utf-8')
