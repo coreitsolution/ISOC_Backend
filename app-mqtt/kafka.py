@@ -157,7 +157,7 @@ def main():
                 "alarmPicture": "https://192.168.29.200:443/v1/s/3232243144/9901/1a9b7adb-fce4-11f0-8923-b496913132ed/20260203/1/dsf_730d67f4-00af-11f1-bc88-b496913132ed_15595907_15958269.jpg",
                 "alarmDate": "1770109799",
                 "memo": "",
-                "extData": '{"enableDeviceContact":"0","faceRecognitionInfo":{"birthday":"","captureFaceImageUrl":"https://192.168.29.200:443/v1/s/3232243144/9901/1a9b7adb-fce4-11f0-8923-b496913132ed/20260203/1/dsf_730d67f4-00af-11f1-bc88-b496913132ed_15958269_15976098.jpg","gender":"0","nationality":"9999","personFaceImageUrl":"https://192.168.29.200:443/upload/obms/headPic/41487033@1@1770003398502.jpg","personId":"41487033","personName":"\u0e17\u0e14\u0e2a\u0e2d\u0e1a","personTypeId":"","personTypeName":"","repositoryId":"2","repositoryName":"Face Arming","similarity":"99","tel":""}}',
+                "extData": '{"enableDeviceContact":"0","faceRecognitionInfo":{"birthday":"","captureFaceImageUrl":"https://192.168.29.200:443/v1/s/3232243144/9901/1a9b7adb-fce4-11f0-8923-b496913132ed/20260203/1/dsf_730d67f4-00af-11f1-bc88-b496913132ed_15958269_15976098.jpg","gender":"0","nationality":"9999","personFaceImageUrl":"https://192.168.29.200:443/upload/obms/headPic/41487033@1@1770003398502.jpg","personId":"8Ujr4N83JuJ2cpjGWLti0fScLdLnn3","personName":"นัฐพล ท้วมทวยหาญ","personTypeId":"","personTypeName":"","repositoryId":"2","repositoryName":"Face Arming","similarity":"99","tel":""}}',
                 "linkVideoChannels": [],
                 "userIds": [],
                 "alarmSourceName": "IPC",
