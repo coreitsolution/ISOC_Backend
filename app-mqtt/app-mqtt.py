@@ -33,11 +33,11 @@ dss_mqtt_port = int(os.getenv("MQTT_BROKER_PORT", 1883))
 dss_username = os.getenv("DSS_USERNAME")
 dss_password = os.getenv("DSS_PASSWORD")
 
-# kafka_topic_detect_person = "dss.event.detect.person"
-# conf = {
-#     "bootstrap.servers": os.getenv("KAFKA_BOKER_URL", "localhost:9092"),
-# }
-# producer = Producer(**conf)
+kafka_topic_detect_person = "dss.event.detect.person"
+conf = {
+    "bootstrap.servers": os.getenv("KAFKA_BOKER_URL", "localhost:9092"),
+}
+producer = Producer(**conf)
 
 ################################# DSS Authentication #################################
 
@@ -106,6 +106,44 @@ def aes_decrypt(word, secret_key, secret_vector):
     return decrypted_word.decode("utf-8")
 
 
+def get_token():
+    key = RSA.generate(2048)
+    public_key = (
+        key.publickey()
+        .export_key()
+        .decode("utf-8")
+        .replace("-----BEGIN PUBLIC KEY-----", "")
+        .replace("-----END PUBLIC KEY-----", "")
+        .replace("\n", "")
+    )
+    first_authentication_resp = first_authentication()
+    signature = get_signature(
+        first_authentication_resp["realm"], first_authentication_resp["randomKey"]
+    )
+    signature = get_signature(
+        first_authentication_resp["realm"], first_authentication_resp["randomKey"]
+    )
+    second_authentication_resp = second_authentication(
+        signature, first_authentication_resp["randomKey"], public_key
+    )
+    return second_authentication_resp
+
+
+def image_url_to_base64(image_url):
+    try:
+        response = requests.get(image_url, verify=False)
+        response.raise_for_status()
+        image_bytes = response.content
+        encoded_image = base64.b64encode(image_bytes)
+        base64_string = encoded_image.decode("utf-8")
+        return base64_string
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching the image: {e}")
+        return None
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+        return None
+
 ################################# PostgreSQL #################################
 
 
@@ -167,31 +205,38 @@ def on_connect(client, userdata, flags, reason_code):
 def on_message(client, userdata, msg):
     payload_json = msg.payload.decode("utf-8")
     json_data = json.loads(payload_json)
-    logging.info(f"json_data: {json_data['info']}")
-    # if "method" in json_data:
-    #     logging.info(f"Received MQTT message on topic {msg.topic}: {json_data}")
-    #     logging.info(f"method: {json_data['method']}")
-    #     if json_data["method"] == "brms.notifyAlarms":
-    #         info = json_data["info"]
-    #         resp = {
-    #             "deviceCode": "1000004",
-    #             "channelId": "1000003$1$0$0",
-    #             "alarmCode": "{8C2C8056-D0A7-454B-845B-C566746D3B42}",
-    #             "alarmDate": "1547014708",
-    #             "personId": "8Ujr4N83JuJ2cpjGWLti0fScLdLnn3",
-    #             "personName": "Jack",
-    #             "captureFaceImageBase64": "",
-    #             "personFaceImageBase64": "",
-    #             "similarity": "50",
-    #         }
-    #         producer.produce(
-    #             kafka_topic_detect_person,
-    #             key="",
-    #             value=str(info),
-    #             callback=kafka_callback,
-    #         )
-    #         producer.flush()
-    insert_mq_log(msg.topic, json_data)
+    resp = get_token()
+    token = resp["token"]
+    credential = resp["credential"]
+    if "method" in json_data:
+        logging.info(f"Received MQTT message on topic {msg.topic}: {json_data}")
+        logging.info(f"method: {json_data['method']}")
+        if json_data["method"] == "brms.notifyAlarms":
+            info = json_data["info"]
+            for item in info:
+                ext_data = json.loads(item["extData"])
+                faceRecognitionInfo = ext_data["faceRecognitionInfo"]
+                personFaceImageBase64 = image_url_to_base64(faceRecognitionInfo["personFaceImageUrl"] + "?token=" + credential)
+                captureFaceImageBase64 = image_url_to_base64(faceRecognitionInfo["captureFaceImageUrl"] + "?token=" + credential)
+                alarmPictureBase64 = image_url_to_base64(item["alarmPicture"] + "?token=" + credential)
+                resp = {
+                    "deviceCode": item["deviceCode"],
+                    "channelId": item["nodeCode"],
+                    "alarmCode": item["alarmCode"],
+                    "alarmDate": item["alarmDate"],
+                    "personId": faceRecognitionInfo["personId"],
+                    "personName": faceRecognitionInfo["personName"],
+                    "captureFaceImageBase64": captureFaceImageBase64,
+                    "personFaceImageBase64": personFaceImageBase64,
+                    "alarmPictureBase64": alarmPictureBase64,
+                    "similarity": faceRecognitionInfo["similarity"],
+                }
+                json_payload = json.dumps(resp).encode("utf-8")
+                producer.produce(
+                    "dss.event.detect.person", key="", value=json_payload, callback=kafka_callback
+                )
+                producer.flush()
+                # insert_mq_log(msg.topic, json_data)
 
 
 def on_subscribe(mqttc, obj, mid, reason_code_list):
@@ -240,12 +285,12 @@ if __name__ == "__main__":
     userId = second_authentication_resp["userId"]
     # userGroupId = second_authentication_resp['userGroupId']
     # logging.info(f"second_authentication_resp: {second_authentication_resp}")
-    userGroupId = "001004"
+    # userGroupId = "001004"
 
     topic = "mq/alarm/msg/topic/" + userId
     topic_event = "mq/event/msg/topic/" + userId
     topic_publish = "mq/common/msg/topic/" + userId
-    topic_group = "mq/alarm/msg/group/topic/" + userGroupId
+    # topic_group = "mq/alarm/msg/group/topic/" + userGroupId
     mq_username = mq_credentials["data"]["userName"]
 
     client = mqtt.Client()
@@ -266,7 +311,7 @@ if __name__ == "__main__":
     client.subscribe(topic)
     client.subscribe(topic_event)
     client.subscribe(topic_publish)
-    client.subscribe(topic_group)
+    # client.subscribe(topic_group)
 
     client.loop_start()
 
