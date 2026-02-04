@@ -33,6 +33,10 @@ dss_mqtt_port = int(os.getenv("MQTT_BROKER_PORT", 1883))
 dss_username = os.getenv("DSS_USERNAME")
 dss_password = os.getenv("DSS_PASSWORD")
 
+userId = ""
+userGroupId = ""
+client = mqtt.Client()
+
 kafka_topic_detect_person = "dss.event.detect.person"
 conf = {
     "bootstrap.servers": os.getenv("KAFKA_BOKER_URL", "localhost:9092"),
@@ -147,59 +151,70 @@ def image_url_to_base64(image_url):
 ################################# PostgreSQL #################################
 
 
-# def get_db_connection():
-#     """Establish connection to PostgreSQL database"""
-#     try:
-#         conn = psycopg2.connect(
-#             host=os.getenv("DB_HOST", "localhost"),
-#             database=os.getenv("DB_NAME", "isoc_backend"),
-#             user=os.getenv("DB_USER", "postgres"),
-#             password=os.getenv("DB_PASSWORD", ""),
-#             port=os.getenv("DB_PORT", "5432"),
-#         )
-#         return conn
-#     except Exception as e:
-#         logging.error(f"Database connection error: {e}")
-#         return None
+def get_db_connection():
+    """Establish connection to PostgreSQL database"""
+    try:
+        conn = psycopg2.connect(
+            host=os.getenv("DB_HOST", "localhost"),
+            database=os.getenv("DB_NAME", "isoc_backend"),
+            user=os.getenv("DB_USER", "postgres"),
+            password=os.getenv("DB_PASSWORD", ""),
+            port=os.getenv("DB_PORT", "5432"),
+        )
+        return conn
+    except Exception as e:
+        logging.error(f"Database connection error: {e}")
+        return None
 
 
-# def insert_mq_log(topic, message):
-#     """Insert MQTT message log into PostgreSQL database"""
-#     conn = get_db_connection()
-#     if conn is None:
-#         return False
+def insert_mq_log(topic, message):
+    """Insert MQTT message log into PostgreSQL database"""
+    conn = get_db_connection()
+    if conn is None:
+        return False
 
-#     try:
-#         with conn.cursor() as cursor:
-#             mq_logs_id = str(uuid.uuid4())
-#             created_at = datetime.now()
+    try:
+        with conn.cursor() as cursor:
+            mq_logs_id = str(uuid.uuid4())
+            created_at = datetime.now()
 
-#             insert_query = """
-#             INSERT INTO mq_logs (mq_logs_id, mq_topic, mq_message, created_at)
-#             VALUES (%s, %s, %s, %s)
-#             """
+            insert_query = """
+            INSERT INTO mq_logs (mq_logs_id, mq_topic, mq_message, created_at)
+            VALUES (%s, %s, %s, %s)
+            """
 
-#             cursor.execute(insert_query, (mq_logs_id, topic, Json(message), created_at))
-#             conn.commit()
+            cursor.execute(insert_query, (mq_logs_id, topic, Json(message), created_at))
+            conn.commit()
 
-#             logging.info(f"Inserted MQ log for topic: {topic}")
-#             return True
+            logging.info(f"Inserted MQ log for topic: {topic}")
+            return True
 
-#     except Exception as e:
-#         logging.error(f"Error inserting MQ log: {e}")
-#         conn.rollback()
-#         return False
-#     finally:
-#         conn.close()
+    except Exception as e:
+        logging.error(f"Error inserting MQ log: {e}")
+        conn.rollback()
+        return False
+    finally:
+        conn.close()
 
 
 ################################# DSS MQTT #################################
 def on_connect(client, userdata, flags, reason_code):
     if reason_code == 0:
         logging.info("Connected to MQTT Broker!")
-        # client.subscribe("your/topic")
+        topic = "mq/alarm/msg/topic/" + userId
+        topic_event = "mq/event/msg/topic/" + userId
+        topic_publish = "mq/common/msg/topic/" + userId
+        topic_group = "mq/alarm/msg/group/topic/" + userGroupId
+        client.subscribe(topic)
+        client.subscribe(topic_event)
+        client.subscribe(topic_publish)
+        client.subscribe(topic_group)
     else:
         logging.error(f"Failed to connect, return code {reason_code}")
+
+
+def on_disconnect(client, userdata, rc):
+    logging.warning("Disconnected from MQTT Broker.")
 
 
 def on_message(client, userdata, msg):
@@ -232,12 +247,14 @@ def on_message(client, userdata, msg):
                     "alarmPictureBase64": alarmPictureBase64,
                     "similarity": faceRecognitionInfo["similarity"],
                 }
+                logging.info(f"produce: {resp}")
                 json_payload = json.dumps(resp).encode("utf-8")
+                logging.info(f"json_payload: {json_payload}")
                 producer.produce(
                     "dss.event.detect.person", key="", value=json_payload, callback=kafka_callback
                 )
                 producer.flush()
-                # insert_mq_log(msg.topic, json_data)
+        # insert_mq_log(msg.topic, json_data)
 
 
 def on_subscribe(mqttc, obj, mid, reason_code_list):
@@ -288,18 +305,16 @@ if __name__ == "__main__":
     # logging.info(f"second_authentication_resp: {second_authentication_resp}")
     userGroupId = "001004"
 
-    topic = "mq/alarm/msg/topic/" + userId
-    topic_event = "mq/event/msg/topic/" + userId
-    topic_publish = "mq/common/msg/topic/" + userId
-    topic_group = "mq/alarm/msg/group/topic/" + userGroupId
+    
     mq_username = mq_credentials["data"]["userName"]
 
-    client = mqtt.Client()
+    
     client.username_pw_set(mq_username, decrypted_pass)
     client.on_connect = on_connect
     client.on_message = on_message
     client.on_subscribe = on_subscribe
     client.on_log = on_error
+    client.on_disconnect = on_disconnect
 
     client.tls_set(
         certifi.where(), cert_reqs=ssl.CERT_NONE, tls_version=ssl.PROTOCOL_TLSv1_2
@@ -309,10 +324,7 @@ if __name__ == "__main__":
     client.connect(dss_mqtt, dss_mqtt_port, 60)
     logging.info("Connected to MQTT Broker.")
 
-    client.subscribe(topic)
-    client.subscribe(topic_event)
-    client.subscribe(topic_publish)
-    client.subscribe(topic_group)
+    
 
     client.loop_start()
 
