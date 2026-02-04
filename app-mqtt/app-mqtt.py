@@ -147,50 +147,50 @@ def image_url_to_base64(image_url):
 ################################# PostgreSQL #################################
 
 
-def get_db_connection():
-    """Establish connection to PostgreSQL database"""
-    try:
-        conn = psycopg2.connect(
-            host=os.getenv("DB_HOST", "localhost"),
-            database=os.getenv("DB_NAME", "isoc_backend"),
-            user=os.getenv("DB_USER", "postgres"),
-            password=os.getenv("DB_PASSWORD", ""),
-            port=os.getenv("DB_PORT", "5432"),
-        )
-        return conn
-    except Exception as e:
-        logging.error(f"Database connection error: {e}")
-        return None
+# def get_db_connection():
+#     """Establish connection to PostgreSQL database"""
+#     try:
+#         conn = psycopg2.connect(
+#             host=os.getenv("DB_HOST", "localhost"),
+#             database=os.getenv("DB_NAME", "isoc_backend"),
+#             user=os.getenv("DB_USER", "postgres"),
+#             password=os.getenv("DB_PASSWORD", ""),
+#             port=os.getenv("DB_PORT", "5432"),
+#         )
+#         return conn
+#     except Exception as e:
+#         logging.error(f"Database connection error: {e}")
+#         return None
 
 
-def insert_mq_log(topic, message):
-    """Insert MQTT message log into PostgreSQL database"""
-    conn = get_db_connection()
-    if conn is None:
-        return False
+# def insert_mq_log(topic, message):
+#     """Insert MQTT message log into PostgreSQL database"""
+#     conn = get_db_connection()
+#     if conn is None:
+#         return False
 
-    try:
-        with conn.cursor() as cursor:
-            mq_logs_id = str(uuid.uuid4())
-            created_at = datetime.now()
+#     try:
+#         with conn.cursor() as cursor:
+#             mq_logs_id = str(uuid.uuid4())
+#             created_at = datetime.now()
 
-            insert_query = """
-            INSERT INTO mq_logs (mq_logs_id, mq_topic, mq_message, created_at)
-            VALUES (%s, %s, %s, %s)
-            """
+#             insert_query = """
+#             INSERT INTO mq_logs (mq_logs_id, mq_topic, mq_message, created_at)
+#             VALUES (%s, %s, %s, %s)
+#             """
 
-            cursor.execute(insert_query, (mq_logs_id, topic, Json(message), created_at))
-            conn.commit()
+#             cursor.execute(insert_query, (mq_logs_id, topic, Json(message), created_at))
+#             conn.commit()
 
-            logging.info(f"Inserted MQ log for topic: {topic}")
-            return True
+#             logging.info(f"Inserted MQ log for topic: {topic}")
+#             return True
 
-    except Exception as e:
-        logging.error(f"Error inserting MQ log: {e}")
-        conn.rollback()
-        return False
-    finally:
-        conn.close()
+#     except Exception as e:
+#         logging.error(f"Error inserting MQ log: {e}")
+#         conn.rollback()
+#         return False
+#     finally:
+#         conn.close()
 
 
 ################################# DSS MQTT #################################
@@ -210,34 +210,34 @@ def on_message(client, userdata, msg):
     credential = resp["credential"]
     logging.info(f"Received MQTT message on topic {msg.topic}")
     logging.info(f"method: {json_data['method']}")
-    # if "method" in json_data:
-    #     if json_data["method"] == "brms.notifyAlarms":
-    #         logging.info(f"json_data: {json_data}")
-    #         info = json_data["info"]
-    #         for item in info:
-    #             ext_data = json.loads(item["extData"])
-    #             faceRecognitionInfo = ext_data["faceRecognitionInfo"]
-    #             personFaceImageBase64 = image_url_to_base64(faceRecognitionInfo["personFaceImageUrl"] + "?token=" + credential)
-    #             captureFaceImageBase64 = image_url_to_base64(faceRecognitionInfo["captureFaceImageUrl"] + "?token=" + credential)
-    #             alarmPictureBase64 = image_url_to_base64(item["alarmPicture"] + "?token=" + credential)
-    #             resp = {
-    #                 "deviceCode": item["deviceCode"],
-    #                 "channelId": item["nodeCode"],
-    #                 "alarmCode": item["alarmCode"],
-    #                 "alarmDate": item["alarmDate"],
-    #                 "personId": faceRecognitionInfo["personId"],
-    #                 "personName": faceRecognitionInfo["personName"],
-    #                 "captureFaceImageBase64": captureFaceImageBase64,
-    #                 "personFaceImageBase64": personFaceImageBase64,
-    #                 "alarmPictureBase64": alarmPictureBase64,
-    #                 "similarity": faceRecognitionInfo["similarity"],
-    #             }
-    #             json_payload = json.dumps(resp).encode("utf-8")
-    #             producer.produce(
-    #                 "dss.event.detect.person", key="", value=json_payload, callback=kafka_callback
-    #             )
-    #             producer.flush()
-    #             insert_mq_log(msg.topic, json_data)
+    if "method" in json_data:
+        if json_data["method"] == "brms.notifyAlarms":
+            logging.info(f"json_data: {json_data}")
+            info = json_data["info"]
+            for item in info:
+                ext_data = json.loads(item["extData"])
+                faceRecognitionInfo = ext_data["faceRecognitionInfo"]
+                personFaceImageBase64 = image_url_to_base64(faceRecognitionInfo["personFaceImageUrl"] + "?token=" + credential)
+                captureFaceImageBase64 = image_url_to_base64(faceRecognitionInfo["captureFaceImageUrl"] + "?token=" + credential)
+                alarmPictureBase64 = image_url_to_base64(item["alarmPicture"] + "?token=" + credential)
+                resp = {
+                    "deviceCode": item["deviceCode"],
+                    "channelId": item["nodeCode"],
+                    "alarmCode": item["alarmCode"],
+                    "alarmDate": item["alarmDate"],
+                    "personId": faceRecognitionInfo["personId"],
+                    "personName": faceRecognitionInfo["personName"],
+                    "captureFaceImageBase64": captureFaceImageBase64,
+                    "personFaceImageBase64": personFaceImageBase64,
+                    "alarmPictureBase64": alarmPictureBase64,
+                    "similarity": faceRecognitionInfo["similarity"],
+                }
+                json_payload = json.dumps(resp).encode("utf-8")
+                producer.produce(
+                    "dss.event.detect.person", key="", value=json_payload, callback=kafka_callback
+                )
+                producer.flush()
+                # insert_mq_log(msg.topic, json_data)
 
 
 def on_subscribe(mqttc, obj, mid, reason_code_list):

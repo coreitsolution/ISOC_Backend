@@ -12,21 +12,21 @@ services:
   #     dockerfile: ./Dockerfile.worker
   #   ports:
   #     - 4446:4446
-  pgsql:
-    image: postgres:16
-    restart: always
-    environment:
-      POSTGRES_PASSWORD: qiKQc6mkJumfOaErq5g3sJgtXN17p0FD
-      POSTGRES_USER: coreit
-      POSTGRES_DB: isoc_backend
-      PGDATA: '/var/lib/postgresql/data'
-    volumes:
-      - ./pg_data:/var/lib/postgresql/data
-    ports:
-      - 5435:5432
+  # pgsql:
+  #   image: postgres:16
+  #   restart: always
+  #   environment:
+  #     POSTGRES_PASSWORD: qiKQc6mkJumfOaErq5g3sJgtXN17p0FD
+  #     POSTGRES_USER: coreit
+  #     POSTGRES_DB: isoc_backend
+  #     PGDATA: '/var/lib/postgresql/data'
+  #   volumes:
+  #     - ./pg_data:/var/lib/postgresql/data
+  #   ports:
+  #     - 5435:5432
   
-volumes:
-  pg-data:
+# volumes:
+#   pg-data:
 
   # zoo1:
   #   image: confluentinc/cp-zookeeper:7.8.0
