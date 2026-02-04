@@ -247,13 +247,12 @@ def on_message(client, userdata, msg):
                     "alarmPictureBase64": alarmPictureBase64,
                     "similarity": faceRecognitionInfo["similarity"],
                 }
-                logging.info(f"produce: {resp}")
                 json_payload = json.dumps(resp).encode("utf-8")
-                logging.info(f"json_payload: {json_payload}")
                 producer.produce(
                     "dss.event.detect.person", key="", value=json_payload, callback=kafka_callback
                 )
                 producer.flush()
+                logging.info("produced successfully to kafka")
         # insert_mq_log(msg.topic, json_data)
 
 
@@ -272,6 +271,32 @@ def kafka_callback(err, msg):
         logging.error(f"Message delivery failed: {err}")
     else:
         logging.info(f"Message delivered to {msg.topic()} [{msg.partition()}]")
+        
+def replace_ip_in_url(url, new_ip):
+    """Replace the IP address in a given URL with a new IP address."""
+    try:
+        from urllib.parse import urlparse, urlunparse
+
+        parsed_url = urlparse(url)
+        netloc_parts = parsed_url.netloc.split(':')
+        if len(netloc_parts) == 2:
+            port = netloc_parts[1]
+            new_netloc = f"{new_ip}:{port}"
+        else:
+            new_netloc = new_ip
+
+        new_url = urlunparse((
+            parsed_url.scheme,
+            new_netloc,
+            parsed_url.path,
+            parsed_url.params,
+            parsed_url.query,
+            parsed_url.fragment
+        ))
+        return new_url
+    except Exception as e:
+        logging.error(f"Error replacing IP in URL: {e}")
+        return url
 
 
 ################################### App Start #################################
@@ -299,7 +324,7 @@ if __name__ == "__main__":
     decrypted_pass = aes_decrypt(
         mq_credentials["data"]["password"], secret_key, secret_vector
     )
-    logging.info(f"dss_mq_password: {decrypted_pass}")
+    # logging.info(f"dss_mq_password: {decrypted_pass}")
     userId = second_authentication_resp["userId"]
     # userGroupId = second_authentication_resp['userGroupId']
     # logging.info(f"second_authentication_resp: {second_authentication_resp}")
