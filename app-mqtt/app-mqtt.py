@@ -208,35 +208,36 @@ def on_message(client, userdata, msg):
     resp = get_token()
     token = resp["token"]
     credential = resp["credential"]
-    if "method" in json_data:
+    if json_data["method"] == "brms.notifyAlarms":
         logging.info(f"Received MQTT message on topic {msg.topic}: {json_data}")
         logging.info(f"method: {json_data['method']}")
-        if json_data["method"] == "brms.notifyAlarms":
-            info = json_data["info"]
-            for item in info:
-                ext_data = json.loads(item["extData"])
-                faceRecognitionInfo = ext_data["faceRecognitionInfo"]
-                personFaceImageBase64 = image_url_to_base64(faceRecognitionInfo["personFaceImageUrl"] + "?token=" + credential)
-                captureFaceImageBase64 = image_url_to_base64(faceRecognitionInfo["captureFaceImageUrl"] + "?token=" + credential)
-                alarmPictureBase64 = image_url_to_base64(item["alarmPicture"] + "?token=" + credential)
-                resp = {
-                    "deviceCode": item["deviceCode"],
-                    "channelId": item["nodeCode"],
-                    "alarmCode": item["alarmCode"],
-                    "alarmDate": item["alarmDate"],
-                    "personId": faceRecognitionInfo["personId"],
-                    "personName": faceRecognitionInfo["personName"],
-                    "captureFaceImageBase64": captureFaceImageBase64,
-                    "personFaceImageBase64": personFaceImageBase64,
-                    "alarmPictureBase64": alarmPictureBase64,
-                    "similarity": faceRecognitionInfo["similarity"],
-                }
-                json_payload = json.dumps(resp).encode("utf-8")
-                producer.produce(
-                    "dss.event.detect.person", key="", value=json_payload, callback=kafka_callback
-                )
-                producer.flush()
-                insert_mq_log(msg.topic, json_data)
+        info = json_data["info"]
+        for item in info:
+            ext_data = json.loads(item["extData"])
+            faceRecognitionInfo = ext_data["faceRecognitionInfo"]
+            personFaceImageBase64 = image_url_to_base64(faceRecognitionInfo["personFaceImageUrl"] + "?token=" + credential)
+            captureFaceImageBase64 = image_url_to_base64(faceRecognitionInfo["captureFaceImageUrl"] + "?token=" + credential)
+            alarmPictureBase64 = image_url_to_base64(item["alarmPicture"] + "?token=" + credential)
+            resp = {
+                "deviceCode": item["deviceCode"],
+                "channelId": item["nodeCode"],
+                "alarmCode": item["alarmCode"],
+                "alarmDate": item["alarmDate"],
+                "personId": faceRecognitionInfo["personId"],
+                "personName": faceRecognitionInfo["personName"],
+                "captureFaceImageBase64": captureFaceImageBase64,
+                "personFaceImageBase64": personFaceImageBase64,
+                "alarmPictureBase64": alarmPictureBase64,
+                "similarity": faceRecognitionInfo["similarity"],
+            }
+            json_payload = json.dumps(resp).encode("utf-8")
+            producer.produce(
+                "dss.event.detect.person", key="", value=json_payload, callback=kafka_callback
+            )
+            producer.flush()
+            logging.info(f"Produced Kafka message for alarmCode: {item['alarmCode']}")
+            insert_mq_log(msg.topic, json_data)
+            logging.info(f"inserted MQ log for alarmCode: {item['alarmCode']}")
 
 
 def on_subscribe(mqttc, obj, mid, reason_code_list):
