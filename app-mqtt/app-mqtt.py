@@ -202,13 +202,13 @@ def on_connect(client, userdata, flags, reason_code):
     if reason_code == 0:
         logging.info("Connected to MQTT Broker!")
         topic = "mq/alarm/msg/topic/" + userId
-        topic_event = "mq/event/msg/topic/" + userId
-        topic_publish = "mq/common/msg/topic/" + userId
-        topic_group = "mq/alarm/msg/group/topic/" + userGroupId
+        # topic_event = "mq/event/msg/topic/" + userId
+        # topic_publish = "mq/common/msg/topic/" + userId
+        # topic_group = "mq/alarm/msg/group/topic/" + userGroupId
         client.subscribe(topic)
-        client.subscribe(topic_event)
-        client.subscribe(topic_publish)
-        client.subscribe(topic_group)
+        # client.subscribe(topic_event)
+        # client.subscribe(topic_publish)
+        # client.subscribe(topic_group)
     else:
         logging.error(f"Failed to connect, return code {reason_code}")
 
@@ -271,32 +271,6 @@ def kafka_callback(err, msg):
         logging.error(f"Message delivery failed: {err}")
     else:
         logging.info(f"Message delivered to {msg.topic()} [{msg.partition()}]")
-        
-def replace_ip_in_url(url, new_ip):
-    """Replace the IP address in a given URL with a new IP address."""
-    try:
-        from urllib.parse import urlparse, urlunparse
-
-        parsed_url = urlparse(url)
-        netloc_parts = parsed_url.netloc.split(':')
-        if len(netloc_parts) == 2:
-            port = netloc_parts[1]
-            new_netloc = f"{new_ip}:{port}"
-        else:
-            new_netloc = new_ip
-
-        new_url = urlunparse((
-            parsed_url.scheme,
-            new_netloc,
-            parsed_url.path,
-            parsed_url.params,
-            parsed_url.query,
-            parsed_url.fragment
-        ))
-        return new_url
-    except Exception as e:
-        logging.error(f"Error replacing IP in URL: {e}")
-        return url
 
 
 ################################### App Start #################################
@@ -328,11 +302,9 @@ if __name__ == "__main__":
     userId = second_authentication_resp["userId"]
     # userGroupId = second_authentication_resp['userGroupId']
     # logging.info(f"second_authentication_resp: {second_authentication_resp}")
-    userGroupId = "001004"
+    # userGroupId = "001004"
 
-    
     mq_username = mq_credentials["data"]["userName"]
-
     
     client.username_pw_set(mq_username, decrypted_pass)
     client.on_connect = on_connect
@@ -345,12 +317,7 @@ if __name__ == "__main__":
         certifi.where(), cert_reqs=ssl.CERT_NONE, tls_version=ssl.PROTOCOL_TLSv1_2
     )
     logging.info("Connecting to MQTT Broker...")
-
     client.connect(dss_mqtt, dss_mqtt_port, 60)
-    logging.info("Connected to MQTT Broker.")
-
-    
-
     client.loop_start()
 
     try:
