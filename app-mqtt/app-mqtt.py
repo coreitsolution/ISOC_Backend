@@ -286,12 +286,12 @@ if __name__ == "__main__":
     userId = second_authentication_resp["userId"]
     # userGroupId = second_authentication_resp['userGroupId']
     # logging.info(f"second_authentication_resp: {second_authentication_resp}")
-    # userGroupId = "001004"
+    userGroupId = "001004"
 
     topic = "mq/alarm/msg/topic/" + userId
     topic_event = "mq/event/msg/topic/" + userId
     topic_publish = "mq/common/msg/topic/" + userId
-    # topic_group = "mq/alarm/msg/group/topic/" + userGroupId
+    topic_group = "mq/alarm/msg/group/topic/" + userGroupId
     mq_username = mq_credentials["data"]["userName"]
 
     client = mqtt.Client()
@@ -312,7 +312,7 @@ if __name__ == "__main__":
     client.subscribe(topic)
     client.subscribe(topic_event)
     client.subscribe(topic_publish)
-    # client.subscribe(topic_group)
+    client.subscribe(topic_group)
 
     client.loop_start()
 
