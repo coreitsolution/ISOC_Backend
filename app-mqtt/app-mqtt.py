@@ -208,9 +208,9 @@ def on_message(client, userdata, msg):
     resp = get_token()
     token = resp["token"]
     credential = resp["credential"]
+    logging.info(f"Received MQTT message on topic {msg.topic}: {json_data}")
+    logging.info(f"method: {json_data['method']}")
     if json_data["method"] == "brms.notifyAlarms":
-        logging.info(f"Received MQTT message on topic {msg.topic}: {json_data}")
-        logging.info(f"method: {json_data['method']}")
         info = json_data["info"]
         for item in info:
             ext_data = json.loads(item["extData"])
