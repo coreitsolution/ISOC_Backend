@@ -6,12 +6,12 @@ services:
       dockerfile: ./Dockerfile
     ports:
       - 4445:4445
-  # kafka-test:
-  #   build: 
-  #     context: .
-  #     dockerfile: ./Dockerfile.worker
-  #   ports:
-  #     - 4446:4446
+  kafka-test:
+    build: 
+      context: .
+      dockerfile: ./Dockerfile.worker
+    ports:
+      - 4446:4446
   # pgsql:
   #   image: postgres:16
   #   restart: always
