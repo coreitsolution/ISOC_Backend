@@ -236,7 +236,7 @@ def on_message(client, userdata, msg):
                     "dss.event.detect.person", key="", value=json_payload, callback=kafka_callback
                 )
                 producer.flush()
-                # insert_mq_log(msg.topic, json_data)
+                insert_mq_log(msg.topic, json_data)
 
 
 def on_subscribe(mqttc, obj, mid, reason_code_list):
