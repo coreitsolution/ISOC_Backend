@@ -141,41 +141,31 @@ def image_url_to_base64(image_url):
 
 def main():
     data_test = {
-        "method": "brms.notifyAlarms",
         "info": [
             {
-                "deviceCode": "1000012",
-                "channelSeq": 0,
-                "unitType": 1,
-                "unitSeq": 0,
-                "nodeType": "2",
-                "nodeCode": "1000012$1$0$0",
-                "alarmCode": "{06e859d060a243999a574b348ea26646}",
-                "alarmStat": "1",
-                "alarmType": "100002",
-                "alarmGrade": "1",
-                "alarmPicture": "https://192.168.29.200:443/v1/s/3232243144/9901/1a9b7adb-fce4-11f0-8923-b496913132ed/20260204/1/dsf_01a23902-016c-11f1-8170-b496913132ed_13002230_13327303.jpg",
-                "alarmDate": "1770171272",
-                "memo": "",
-                "extData": '{"enableDeviceContact": "0","faceRecognitionInfo": {"birthday": "","captureFaceImageUrl": "https://192.168.29.200:443/v1/s/3232243144/9901/1a9b7adb-fce4-11f0-8923-b496913132ed/20260204/1/dsf_01a23902-016c-11f1-8170-b496913132ed_13327303_13365627.jpg","gender": "0","nationality": "9999","personFaceImageUrl": "https://192.168.29.200:443/upload/obms/headPic/jeueRlb5dvxMPRDDLR7qJbAIqmNrbz@1@1769746877236.jpg","personId": "jeueRlb5dvxMPRDDLR7qJbAIqmNrbz","personName": "อธิป ทรการ","personTypeId": "","personTypeName": "","repositoryId": "2","repositoryName": "Face Arming","similarity": "99","tel": ""}}',
-                "linkVideoChannels": [],
-                "userIds": [],
-                "alarmSourceName": "IPC",
-                "gpsX": 0.0,
-                "gpsY": 0.0,
-                "ruleThreshold": 0,
-                "stayNumber": 0,
-                "planTemplateId": "",
-                "deviceName": "NVR-Face-5",
-                "linkedOutput": "0",
-                "linkedAudioLight": "0",
-                "linkedAudio": "0",
-                "mapIds": [""],
-                "linkedVoicePrompt": "0",
-                "voicePromptContent": "",
-                "allowViewLinkInfo": "1",
+                "alarmCode": "",
+                "appearTimes": "0",
+                "beginTime": "1766480461",
+                "channelId": "1000002$1$0$1",
+                "endTime": "1766480461",
+                "faceImageUrl": "https://amic-center.local/face_images/W6d3uFYkoVbv4INO-jMni0qDP.jpg",
+                "hited": "1",
+                "pictureUrl": "https://amic-center.local/face_images/cdILtXm80G0khOWY-H6Kq0c91.jpg",
+                "pictureUrlRelativePath": "https://amic-center.local/face_images/cdILtXm80G0khOWY-H6Kq0c91.jpg",
+                "recAge": "35",
+                "recBeard": "2",
+                "recEmotion": "9",
+                "recEye": "3",
+                "recFringe": "0",
+                "recGender": "2",
+                "recGlasses": "0",
+                "recMask": "2",
+                "recMouth": "2",
+                "serviceCode": "400101",
+                "similarFaces": [],
             }
         ],
+        "method": "brms.notifyFaceInfos",
     }
     resp = get_token()
     token = resp["token"]
@@ -183,36 +173,9 @@ def main():
     while True:
         info = data_test["info"]
         for item in info:
-            ext_data = json.loads(item["extData"])
-            faceRecognitionInfo = ext_data["faceRecognitionInfo"]
-            personFaceImageBase64 = image_url_to_base64(
-                faceRecognitionInfo["personFaceImageUrl"] + "?token=" + credential
-            )
-            captureFaceImageBase64 = image_url_to_base64(
-                faceRecognitionInfo["captureFaceImageUrl"] + "?token=" + credential
-            )
-            alarmPictureBase64 = image_url_to_base64(
-                item["alarmPicture"] + "?token=" + credential
-            )
-            resp = {
-                "deviceCode": item["deviceCode"],
-                "channelId": item["nodeCode"],
-                "alarmCode": item["alarmCode"],
-                "alarmDate": item["alarmDate"],
-                "personId": faceRecognitionInfo["personId"],
-                "personName": faceRecognitionInfo["personName"],
-                "captureFaceImageBase64": captureFaceImageBase64,
-                "personFaceImageBase64": personFaceImageBase64,
-                "alarmPictureBase64": alarmPictureBase64,
-                "similarity": faceRecognitionInfo["similarity"],
-            }
-            json_payload = json.dumps(resp).encode("utf-8")
+            json_payload = json.dumps(item).encode("utf-8")
             producer.produce(
-                "dss.event.detect.person", key="", value=json_payload, callback=callback
+                os.getenv("KAFKA_DETECT_FACE_TOPIC"), key="", value=json_payload, callback=callback
             )
             producer.flush()
             time.sleep(10)
-
-
-if __name__ == "__main__":
-    main()
