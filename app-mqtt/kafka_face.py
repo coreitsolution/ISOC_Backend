@@ -173,9 +173,47 @@ def main():
     while True:
         info = data_test["info"]
         for item in info:
-            json_payload = json.dumps(item).encode("utf-8")
+            faceImageBase64 = image_url_to_base64(
+                item["faceImageUrl"] + "?token=" + credential
+            )
+            pictureImageBase64 = image_url_to_base64(
+                item["pictureUrl"] + "?token=" + credential
+            )
+            pictureRelativeImageBase64 = image_url_to_base64(
+                item["pictureUrlRelativePath"] + "?token=" + credential
+            )
+            item["faceImageBase64"] = faceImageBase64
+            item["pictureImageBase64"] = pictureImageBase64
+            item["pictureUrlRelativePathImageBase64"] = pictureRelativeImageBase64
+            resp = {
+                "alarmCode": item["alarmCode"],
+                "appearTimes": item["appearTimes"],
+                "beginTime": item["beginTime"],
+                "channelId": item["channelId"],
+                "endTime": item["endTime"],
+                "faceImageBase64": faceImageBase64,
+                "hited": item["hited"],
+                "pictureImageBase64": pictureImageBase64,
+                "pictureUrlRelativePathImageBase64": pictureRelativeImageBase64,
+                "recAge": item["recAge"],
+                "recBeard": item["recBeard"],
+                "recEmotion": item["recEmotion"],
+                "recEye": item["recEye"],
+                "recFringe": item["recFringe"],
+                "recGender": item["recGender"],
+                "recGlasses": item["recGlasses"],
+                "recMask": item["recMask"],
+                "recMouth": item["recMouth"],
+                "serviceCode": item["serviceCode"],
+                "similarFaces": item["similarFaces"],
+            }
+            json_payload = json.dumps(resp).encode("utf-8")
             producer.produce(
                 os.getenv("KAFKA_DETECT_FACE_TOPIC"), key="", value=json_payload, callback=callback
             )
             producer.flush()
+            print("Message sent to Kafka topic.")
             time.sleep(10)
+
+if __name__ == "__main__":
+    main()

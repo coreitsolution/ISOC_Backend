@@ -167,7 +167,7 @@ def get_db_connection():
         return None
 
 
-def insert_mq_log(topic, message):
+def create_mq_log(topic, message):
     """Insert MQTT message log into PostgreSQL database"""
     conn = get_db_connection()
     if conn is None:
@@ -195,19 +195,72 @@ def insert_mq_log(topic, message):
         return False
     finally:
         conn.close()
+        
 
+def create_face_data(face_data):
+    """ Insert face data into PostgreSQL database"""
+    conn = get_db_connection()
+    if conn is None:    
+        return False
+    try:        
+        with conn.cursor() as cursor:
+            created_at = datetime.now()
+            updated_at = datetime.now()
+
+            insert_query = """
+            INSERT INTO face_data (
+                alarm_code, channel_id, appear_times, begin_time, end_time,
+                age, hited, beard, emotion, eye, fringe, gender, glasses, mask, mount, face_image_url,
+                picture_url, service_code, similar_faces, is_watchlist, watchlist_uids, method, created_at, updated_at
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """
+            cursor.execute(insert_query, (
+                face_data["alarmCode"],
+                face_data["channelId"],
+                face_data["appearTimes"],
+                face_data["beginTime"],
+                face_data["endTime"],
+                face_data["age"],
+                face_data["hited"],
+                face_data["beard"],
+                face_data["emotion"],
+                face_data["eye"],
+                face_data["fringe"],
+                face_data["gender"],
+                face_data["glasses"],
+                face_data["mask"],
+                face_data["mount"],
+                face_data["faceImageUrl"],
+                face_data["pictureUrl"],
+                face_data["serviceCode"],
+                json.dumps(face_data.get("similarFaces", [])),
+                face_data.get("isWatchlist", False),
+                json.dumps(face_data.get("watchlistUids", [])),
+                "MQTT",
+                created_at,
+                updated_at
+            ))
+            conn.commit()
+            logging.info("Inserted Face Data successfully")
+            return True
+    except Exception as e:
+        logging.error(f"Error inserting Face Data: {e}")
+        conn.rollback()
+        return False
+    finally:
+        conn.close()
 
 ################################# DSS MQTT #################################
 def on_connect(client, userdata, flags, reason_code):
     if reason_code == 0:
         logging.info("Connected to MQTT Broker!")
-        topic = "mq/alarm/msg/topic/" + userId
+        topic_alarm = "mq/alarm/msg/topic/" + userId
         # topic_event = "mq/event/msg/topic/" + userId
-        # topic_publish = "mq/common/msg/topic/" + userId
+        topic_common = "mq/common/msg/topic/" + userId
         # topic_group = "mq/alarm/msg/group/topic/" + userGroupId
-        client.subscribe(topic)
+        client.subscribe(topic_alarm)
         # client.subscribe(topic_event)
-        # client.subscribe(topic_publish)
+        client.subscribe(topic_common)
         # client.subscribe(topic_group)
     else:
         logging.error(f"Failed to connect, return code {reason_code}")
@@ -253,7 +306,7 @@ def on_message(client, userdata, msg):
                 )
                 producer.flush()
                 logging.info("produced successfully to kafka")
-        # insert_mq_log(msg.topic, json_data)
+        # create_mq_log(msg.topic, json_data)
 
 
 def on_subscribe(mqttc, obj, mid, reason_code_list):
@@ -298,14 +351,14 @@ if __name__ == "__main__":
     decrypted_pass = aes_decrypt(
         mq_credentials["data"]["password"], secret_key, secret_vector
     )
-    # logging.info(f"dss_mq_password: {decrypted_pass}")
+    logging.info(f"dss_mq_password: {decrypted_pass}")
     userId = second_authentication_resp["userId"]
     # userGroupId = second_authentication_resp['userGroupId']
     # logging.info(f"second_authentication_resp: {second_authentication_resp}")
     # userGroupId = "001004"
 
     mq_username = mq_credentials["data"]["userName"]
-    
+    logging.info(f"dss_mq_username: {mq_username}")
     client.username_pw_set(mq_username, decrypted_pass)
     client.on_connect = on_connect
     client.on_message = on_message
