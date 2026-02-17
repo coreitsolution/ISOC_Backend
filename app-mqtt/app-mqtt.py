@@ -206,7 +206,7 @@ def create_face_data(face_data, method, credential):
     try:        
         with conn.cursor() as cursor:
             insert_query = """
-            INSERT INTO face_data (
+            INSERT INTO center.face_data (
                 alarm_code, channel_id, appear_times, begin_time, end_time,
                 age, hited, beard, emotion, eye, fringe, gender, glasses, mask, mount, face_image_url,
                 picture_url, service_code, similar_faces, is_watchlist, method
