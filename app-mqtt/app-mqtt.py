@@ -450,7 +450,7 @@ def on_message(client, userdata, msg):
                     "similarFaces": item["similarFaces"],
                 }
                 create_face_data(payload, json_data["method"], credential)
-        create_mq_log(msg.topic, json_data, json_data["method"])
+        # create_mq_log(msg.topic, json_data, json_data["method"])
 
 
 def on_subscribe(mqttc, obj, mid, reason_code_list):
