@@ -8,12 +8,12 @@ services:
       - 4445:4445
     volumes:
       - ./data/face_images:/app/data/face_images
-  kafka-face:
-    build: 
-      context: .
-      dockerfile: ./Dockerfile.worker
-    ports:
-      - 4446:4446
+  # kafka-face:
+  #   build: 
+  #     context: .
+  #     dockerfile: ./Dockerfile.worker
+  #   ports:
+  #     - 4446:4446
 
 volumes:
   face_images:
