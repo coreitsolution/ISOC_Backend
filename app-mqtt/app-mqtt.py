@@ -257,7 +257,7 @@ def create_face_data(face_data, method, credential):
         
 def download_image_from_url(image_url, destination_dir):
     try:
-        response = requests.get(image_url)
+        response = requests.get(image_url, verify=False)
         if response.status_code == 200:
             filename = os.path.basename(image_url.split('?')[0]) 
             file_path = os.path.join(destination_dir, filename)
