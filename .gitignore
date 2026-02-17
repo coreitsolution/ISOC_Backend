@@ -130,3 +130,4 @@ pgadmin_data
 __pycache__/
 app-mqtt/kafka/data/
 */data/face_images/
+*/data/picture_images/

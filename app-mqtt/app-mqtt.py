@@ -149,6 +149,7 @@ def image_url_to_base64(image_url):
         print(f"An unexpected error occurred: {e}")
         return None
 
+
 ################################# PostgreSQL #################################
 
 
@@ -184,7 +185,9 @@ def create_mq_log(topic, message, mq_method):
             VALUES (%s, %s, %s, %s, %s)
             """
 
-            cursor.execute(insert_query, (mq_logs_id, topic, Json(message), created_at, mq_method))
+            cursor.execute(
+                insert_query, (mq_logs_id, topic, Json(message), created_at, mq_method)
+            )
             conn.commit()
 
             logging.info(f"Inserted MQ log for topic: {topic}")
@@ -196,14 +199,14 @@ def create_mq_log(topic, message, mq_method):
         return False
     finally:
         conn.close()
-        
 
-def create_face_data(face_data, method, credential):
-    """ Insert face data into PostgreSQL database"""
+
+def create_face_data(face_data, method):
+    """Insert face data into PostgreSQL database"""
     conn = get_db_connection()
-    if conn is None:    
+    if conn is None:
         return False
-    try:        
+    try:
         with conn.cursor() as cursor:
             insert_query = """
             INSERT INTO center.face_data (
@@ -217,33 +220,34 @@ def create_face_data(face_data, method, credential):
                 isWatchlist = True
             beginTime = datetime.fromtimestamp(int(face_data["beginTime"])).astimezone()
             endTime = datetime.fromtimestamp(int(face_data["endTime"])).astimezone()
-            faceImageUrl = face_data["faceImageUrl"] + "?token=" + credential
-            pictureUrl = face_data["pictureUrl"] + "?token=" + credential
-            faceImageFile = download_image_from_url(faceImageUrl, "data/face_images")
-            pictureImageFile = download_image_from_url(pictureUrl, "data/picture_images")
-            cursor.execute(insert_query, (
-                face_data["alarmCode"],
-                face_data["channelId"],
-                face_data["appearTimes"],
-                beginTime,
-                endTime,
-                int(face_data["recAge"]),
-                recHited(face_data["hited"]),
-                recBeard(face_data["recBeard"]),
-                recEmotion(face_data["recEmotion"]),
-                recEye(face_data["recEye"]),
-                recFringe(face_data["recFringe"]),
-                recGender(face_data["recGender"]),
-                recGlasses(face_data["recGlasses"]),
-                recMask(face_data["recMask"]),
-                recMouth(face_data["recMouth"]),
-                faceImageFile,
-                pictureImageFile,
-                face_data["serviceCode"],
-                json.dumps(face_data["similarFaces"]),
-                isWatchlist,
-                method,
-            ))
+            pamars = (
+                    face_data["alarmCode"],
+                    face_data["channelId"],
+                    face_data["appearTimes"],
+                    beginTime,
+                    endTime,
+                    int(face_data["recAge"]),
+                    recHited(face_data["hited"]),
+                    recBeard(face_data["recBeard"]),
+                    recEmotion(face_data["recEmotion"]),
+                    recEye(face_data["recEye"]),
+                    recFringe(face_data["recFringe"]),
+                    recGender(face_data["recGender"]),
+                    recGlasses(face_data["recGlasses"]),
+                    recMask(face_data["recMask"]),
+                    recMouth(face_data["recMouth"]),
+                    face_data["faceImageUrl"],
+                    str(face_data["pictureUrl"]),
+                    str(face_data["serviceCode"]),
+                    json.dumps(face_data["similarFaces"]),
+                    isWatchlist,
+                    method,
+                )
+            cursor.execute(
+                insert_query,
+                pamars,
+            )
+            logging.info(cursor.mogrify(insert_query, pamars).decode("utf-8"))
             conn.commit()
             logging.info("Inserted Face Data successfully")
             return True
@@ -253,22 +257,46 @@ def create_face_data(face_data, method, credential):
         return False
     finally:
         conn.close()
-        
-        
+
+
+def replace_ip_in_url(url, new_ip):
+    try:
+        from urllib.parse import urlparse, urlunparse
+
+        parsed_url = urlparse(url)
+        new_netloc = new_ip + ":" + str(parsed_url.port) if parsed_url.port else new_ip
+        modified_url = urlunparse(
+            (
+                parsed_url.scheme,
+                new_netloc,
+                parsed_url.path,
+                parsed_url.params,
+                parsed_url.query,
+                parsed_url.fragment,
+            )
+        )
+        return modified_url
+    except Exception as e:
+        logging.error(f"Error replacing IP in URL: {e}")
+        return url
+
+
 def download_image_from_url(image_url, destination_dir):
     try:
         response = requests.get(image_url, verify=False)
         if response.status_code == 200:
-            filename = os.path.basename(image_url.split('?')[0]) 
+            filename = os.path.basename(image_url.split("?")[0])
             file_path = os.path.join(destination_dir, filename)
             if not os.path.exists(destination_dir):
                 os.makedirs(destination_dir)
-            with open(file_path, 'wb') as f:
+            with open(file_path, "wb") as f:
                 f.write(response.content)
             logging.info(f"Image downloaded successfully and saved to: {file_path}")
             return file_path
         else:
-            logging.warning(f"Failed to download image. Status code: {response.status_code}")
+            logging.warning(
+                f"Failed to download image. Status code: {response.status_code}"
+            )
             return None
     except requests.exceptions.RequestException as e:
         logging.error(f"An error occurred during the request: {e}")
@@ -276,14 +304,16 @@ def download_image_from_url(image_url, destination_dir):
     except IOError as e:
         logging.error(f"An I/O error occurred while saving the file: {e}")
         return None
-        
+
+
 # hited Whether to recognize: 0: Capture; 1: Recognize
 def recHited(hited):
     if hited == "1":
         return "Recognize"
     else:
         return "Capture"
-        
+
+
 # recGender Gender: 0: Unrecognized; 1: Male; 2: Female
 def recGender(gender):
     if gender == "1":
@@ -293,12 +323,14 @@ def recGender(gender):
     else:
         return "Unrecognized"
 
+
 # recFringe Feature, fringe: 0: No; 1: Yes
 def recFringe(fringe):
     if fringe == "1":
         return "Yes"
     else:
         return "No"
+
 
 # recEye Feature, eye: 1: Unrecognized; 2: Closed; 3: Opened
 def recEye(eye):
@@ -309,6 +341,7 @@ def recEye(eye):
     else:
         return "Unrecognized"
 
+
 # recMouth Feature, mouth: 1: Unrecognized; 2: Closed; 3: Opened
 def recMouth(mouth):
     if mouth == "2":
@@ -318,6 +351,7 @@ def recMouth(mouth):
     else:
         return "Unrecognized"
 
+
 # recMask Feature, mask: 0: Unknown (SDK); 1: Unrecognized; 2: Without mask; 3: With mask
 def recMask(mask):
     if mask == "2":
@@ -326,7 +360,8 @@ def recMask(mask):
         return "With mask"
     else:
         return "Unrecognized"
-    
+
+
 # recBeard Feature, beard: 0: Unknown (SDK); 1: Unrecognized; 2: Without beard; 3: With beard
 def recBeard(beard):
     if beard == "2":
@@ -335,8 +370,8 @@ def recBeard(beard):
         return "With beard"
     else:
         return "Unrecognized"
-    
-    
+
+
 # recGlasses Feature, glasses: 0: No; 1: With glasses; 2: Sunglasses
 def recGlasses(glasses):
     if glasses == "1":
@@ -345,7 +380,8 @@ def recGlasses(glasses):
         return "Sunglasses"
     else:
         return "No"
-    
+
+
 # recEmotion Feature, expressions: 0: Smile; 1: Angry; 2: Sad; 3: Disgusted; 4: Scared; 5: Surprised; 6: Normal; 7: Laugh; 8: Happy; 9: Confused; 10: Scream
 def recEmotion(emotion):
     emotion_mapping = {
@@ -359,9 +395,10 @@ def recEmotion(emotion):
         "7": "Laugh",
         "8": "Happy",
         "9": "Confused",
-        "10": "Scream"
+        "10": "Scream",
     }
     return emotion_mapping.get(emotion, "Unrecognized")
+
 
 ################################# DSS MQTT #################################
 def on_connect(client, userdata, flags, reason_code):
@@ -391,7 +428,10 @@ def on_message(client, userdata, msg):
     logging.info(f"Received MQTT message on topic {msg.topic}")
     logging.info(f"method: {json_data['method']}")
     if "method" in json_data:
-        if json_data["method"] == "vms.notifyUserTokenExpiration" or json_data["method"] == "vms.notifyUserOnlineStatus":
+        if (
+            json_data["method"] == "vms.notifyUserTokenExpiration"
+            or json_data["method"] == "vms.notifyUserOnlineStatus"
+        ):
             return
         logging.info(f"json_data: {json_data}")
         if json_data["method"] == "brms.notifyAlarms":
@@ -400,9 +440,19 @@ def on_message(client, userdata, msg):
                 ext_data = json.loads(item["extData"])
                 if "faceRecognitionInfo" in ext_data:
                     faceRecognitionInfo = ext_data["faceRecognitionInfo"]
-                    personFaceImageBase64 = image_url_to_base64(faceRecognitionInfo["personFaceImageUrl"] + "?token=" + credential)
-                    captureFaceImageBase64 = image_url_to_base64(faceRecognitionInfo["captureFaceImageUrl"] + "?token=" + credential)
-                    alarmPictureBase64 = image_url_to_base64(item["alarmPicture"] + "?token=" + credential)
+                    personFaceImageBase64 = image_url_to_base64(
+                        faceRecognitionInfo["personFaceImageUrl"]
+                        + "?token="
+                        + credential
+                    )
+                    captureFaceImageBase64 = image_url_to_base64(
+                        faceRecognitionInfo["captureFaceImageUrl"]
+                        + "?token="
+                        + credential
+                    )
+                    alarmPictureBase64 = image_url_to_base64(
+                        item["alarmPicture"] + "?token=" + credential
+                    )
                     resp = {
                         "deviceCode": item["deviceCode"],
                         "channelId": item["nodeCode"],
@@ -426,8 +476,24 @@ def on_message(client, userdata, msg):
             info = json_data["info"]
             for item in info:
                 recEmotion = ""
-                if "recEmotion"  in item:
+                if "recEmotion" in item:
                     recEmotion = item["recEmotion"]
+                faceImageUrl = (
+                    replace_ip_in_url(item["faceImageUrl"], os.getenv("DSS_API_URL"))
+                    + "?token="
+                    + credential
+                )
+                pictureUrl = (
+                    replace_ip_in_url(item["pictureUrl"], os.getenv("DSS_API_URL"))
+                    + "?token="
+                    + credential
+                )
+                faceImageFile = download_image_from_url(
+                    faceImageUrl, "data/face_images"
+                )
+                pictureImageFile = download_image_from_url(
+                    pictureUrl, "data/picture_images"
+                )
                 payload = {
                     "alarmCode": item["alarmCode"],
                     "channelId": item["channelId"],
@@ -444,12 +510,12 @@ def on_message(client, userdata, msg):
                     "recGlasses": item["recGlasses"],
                     "recMask": item["recMask"],
                     "recMouth": item["recMouth"],
-                    "faceImageUrl": item["faceImageUrl"] + "?token=" + credential,
-                    "pictureUrl": item["pictureUrl"] + "?token=" + credential,
+                    "faceImageUrl": faceImageFile.replace("\\", "/"),
+                    "pictureUrl": pictureImageFile.replace("\\", "/"),
                     "serviceCode": item["serviceCode"],
                     "similarFaces": item["similarFaces"],
                 }
-                create_face_data(payload, json_data["method"], credential)
+                create_face_data(payload, json_data["method"])
         # create_mq_log(msg.topic, json_data, json_data["method"])
 
 
