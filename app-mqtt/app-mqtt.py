@@ -2,6 +2,7 @@ import os
 import hashlib
 import json
 import ssl
+from time import timezone
 import certifi
 import certifi
 import requests
@@ -167,7 +168,7 @@ def get_db_connection():
         return None
 
 
-def create_mq_log(topic, message):
+def create_mq_log(topic, message, mq_method):
     """Insert MQTT message log into PostgreSQL database"""
     conn = get_db_connection()
     if conn is None:
@@ -179,11 +180,11 @@ def create_mq_log(topic, message):
             created_at = datetime.now()
 
             insert_query = """
-            INSERT INTO mq_logs (mq_logs_id, mq_topic, mq_message, created_at)
-            VALUES (%s, %s, %s, %s)
+            INSERT INTO mq_logs (mq_logs_id, mq_topic, mq_message, created_at, mq_method)
+            VALUES (%s, %s, %s, %s, %s)
             """
 
-            cursor.execute(insert_query, (mq_logs_id, topic, Json(message), created_at))
+            cursor.execute(insert_query, (mq_logs_id, topic, Json(message), created_at, mq_method))
             conn.commit()
 
             logging.info(f"Inserted MQ log for topic: {topic}")
@@ -197,48 +198,51 @@ def create_mq_log(topic, message):
         conn.close()
         
 
-def create_face_data(face_data):
+def create_face_data(face_data, method, credential):
     """ Insert face data into PostgreSQL database"""
     conn = get_db_connection()
     if conn is None:    
         return False
     try:        
         with conn.cursor() as cursor:
-            created_at = datetime.now()
-            updated_at = datetime.now()
-
             insert_query = """
             INSERT INTO face_data (
                 alarm_code, channel_id, appear_times, begin_time, end_time,
                 age, hited, beard, emotion, eye, fringe, gender, glasses, mask, mount, face_image_url,
-                picture_url, service_code, similar_faces, is_watchlist, watchlist_uids, method, created_at, updated_at
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                picture_url, service_code, similar_faces, is_watchlist, method
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
+            isWatchlist = False
+            if len(face_data["similarFaces"]) > 0:
+                isWatchlist = True
+            beginTime = datetime.fromtimestamp(int(face_data["beginTime"])).astimezone()
+            endTime = datetime.fromtimestamp(int(face_data["endTime"])).astimezone()
+            faceImageUrl = face_data["faceImageUrl"] + "?token=" + credential
+            pictureUrl = face_data["pictureUrl"] + "?token=" + credential
+            faceImageFile = download_image_from_url(faceImageUrl, "data/face_images")
+            pictureImageFile = download_image_from_url(pictureUrl, "data/picture_images")
             cursor.execute(insert_query, (
                 face_data["alarmCode"],
                 face_data["channelId"],
                 face_data["appearTimes"],
-                face_data["beginTime"],
-                face_data["endTime"],
-                face_data["age"],
-                face_data["hited"],
-                face_data["beard"],
-                face_data["emotion"],
-                face_data["eye"],
-                face_data["fringe"],
-                face_data["gender"],
-                face_data["glasses"],
-                face_data["mask"],
-                face_data["mount"],
-                face_data["faceImageUrl"],
-                face_data["pictureUrl"],
+                beginTime,
+                endTime,
+                int(face_data["recAge"]),
+                recHited(face_data["hited"]),
+                recBeard(face_data["recBeard"]),
+                recEmotion(face_data["recEmotion"]),
+                recEye(face_data["recEye"]),
+                recFringe(face_data["recFringe"]),
+                recGender(face_data["recGender"]),
+                recGlasses(face_data["recGlasses"]),
+                recMask(face_data["recMask"]),
+                recMouth(face_data["recMouth"]),
+                faceImageFile,
+                pictureImageFile,
                 face_data["serviceCode"],
-                json.dumps(face_data.get("similarFaces", [])),
-                face_data.get("isWatchlist", False),
-                json.dumps(face_data.get("watchlistUids", [])),
-                "MQTT",
-                created_at,
-                updated_at
+                json.dumps(face_data["similarFaces"]),
+                isWatchlist,
+                method,
             ))
             conn.commit()
             logging.info("Inserted Face Data successfully")
@@ -249,17 +253,125 @@ def create_face_data(face_data):
         return False
     finally:
         conn.close()
+        
+        
+def download_image_from_url(image_url, destination_dir):
+    try:
+        response = requests.get(image_url)
+        if response.status_code == 200:
+            filename = os.path.basename(image_url.split('?')[0]) 
+            file_path = os.path.join(destination_dir, filename)
+            if not os.path.exists(destination_dir):
+                os.makedirs(destination_dir)
+            with open(file_path, 'wb') as f:
+                f.write(response.content)
+            logging.info(f"Image downloaded successfully and saved to: {file_path}")
+            return file_path
+        else:
+            logging.warning(f"Failed to download image. Status code: {response.status_code}")
+            return None
+    except requests.exceptions.RequestException as e:
+        logging.error(f"An error occurred during the request: {e}")
+        return None
+    except IOError as e:
+        logging.error(f"An I/O error occurred while saving the file: {e}")
+        return None
+        
+# hited Whether to recognize: 0: Capture; 1: Recognize
+def recHited(hited):
+    if hited == "1":
+        return "Recognize"
+    else:
+        return "Capture"
+        
+# recGender Gender: 0: Unrecognized; 1: Male; 2: Female
+def recGender(gender):
+    if gender == "1":
+        return "Male"
+    elif gender == "2":
+        return "Female"
+    else:
+        return "Unrecognized"
+
+# recFringe Feature, fringe: 0: No; 1: Yes
+def recFringe(fringe):
+    if fringe == "1":
+        return "Yes"
+    else:
+        return "No"
+
+# recEye Feature, eye: 1: Unrecognized; 2: Closed; 3: Opened
+def recEye(eye):
+    if eye == "2":
+        return "Closed"
+    elif eye == "3":
+        return "Opened"
+    else:
+        return "Unrecognized"
+
+# recMouth Feature, mouth: 1: Unrecognized; 2: Closed; 3: Opened
+def recMouth(mouth):
+    if mouth == "2":
+        return "Closed"
+    elif mouth == "3":
+        return "Opened"
+    else:
+        return "Unrecognized"
+
+# recMask Feature, mask: 0: Unknown (SDK); 1: Unrecognized; 2: Without mask; 3: With mask
+def recMask(mask):
+    if mask == "2":
+        return "Without mask"
+    elif mask == "3":
+        return "With mask"
+    else:
+        return "Unrecognized"
+    
+# recBeard Feature, beard: 0: Unknown (SDK); 1: Unrecognized; 2: Without beard; 3: With beard
+def recBeard(beard):
+    if beard == "2":
+        return "Without beard"
+    elif beard == "3":
+        return "With beard"
+    else:
+        return "Unrecognized"
+    
+    
+# recGlasses Feature, glasses: 0: No; 1: With glasses; 2: Sunglasses
+def recGlasses(glasses):
+    if glasses == "1":
+        return "With glasses"
+    elif glasses == "2":
+        return "Sunglasses"
+    else:
+        return "No"
+    
+# recEmotion Feature, expressions: 0: Smile; 1: Angry; 2: Sad; 3: Disgusted; 4: Scared; 5: Surprised; 6: Normal; 7: Laugh; 8: Happy; 9: Confused; 10: Scream
+def recEmotion(emotion):
+    emotion_mapping = {
+        "0": "Smile",
+        "1": "Angry",
+        "2": "Sad",
+        "3": "Disgusted",
+        "4": "Scared",
+        "5": "Surprised",
+        "6": "Normal",
+        "7": "Laugh",
+        "8": "Happy",
+        "9": "Confused",
+        "10": "Scream"
+    }
+    return emotion_mapping.get(emotion, "Unrecognized")
 
 ################################# DSS MQTT #################################
 def on_connect(client, userdata, flags, reason_code):
     if reason_code == 0:
-        logging.info("Connected to MQTT Broker!")
-        topic_alarm = "mq/alarm/msg/topic/" + userId
-        # topic_event = "mq/event/msg/topic/" + userId
-        topic_common = "mq/common/msg/topic/" + userId
+        topic_alarm = "mq/alarm/msg/topic"
+        topic_event = "mq/event/msg/topic"
+        topic_common = "mq/common/msg/topic"
         # topic_group = "mq/alarm/msg/group/topic/" + userGroupId
         client.subscribe(topic_alarm)
-        # client.subscribe(topic_event)
+        client.subscribe(topic_event)
         client.subscribe(topic_common)
         # client.subscribe(topic_group)
     else:
@@ -279,34 +391,66 @@ def on_message(client, userdata, msg):
     logging.info(f"Received MQTT message on topic {msg.topic}")
     logging.info(f"method: {json_data['method']}")
     if "method" in json_data:
+        if json_data["method"] == "vms.notifyUserTokenExpiration" or json_data["method"] == "vms.notifyUserOnlineStatus":
+            return
+        logging.info(f"json_data: {json_data}")
         if json_data["method"] == "brms.notifyAlarms":
-            logging.info(f"json_data: {json_data}")
             info = json_data["info"]
             for item in info:
                 ext_data = json.loads(item["extData"])
-                faceRecognitionInfo = ext_data["faceRecognitionInfo"]
-                personFaceImageBase64 = image_url_to_base64(faceRecognitionInfo["personFaceImageUrl"] + "?token=" + credential)
-                captureFaceImageBase64 = image_url_to_base64(faceRecognitionInfo["captureFaceImageUrl"] + "?token=" + credential)
-                alarmPictureBase64 = image_url_to_base64(item["alarmPicture"] + "?token=" + credential)
-                resp = {
-                    "deviceCode": item["deviceCode"],
-                    "channelId": item["nodeCode"],
+                if "faceRecognitionInfo" in ext_data:
+                    faceRecognitionInfo = ext_data["faceRecognitionInfo"]
+                    personFaceImageBase64 = image_url_to_base64(faceRecognitionInfo["personFaceImageUrl"] + "?token=" + credential)
+                    captureFaceImageBase64 = image_url_to_base64(faceRecognitionInfo["captureFaceImageUrl"] + "?token=" + credential)
+                    alarmPictureBase64 = image_url_to_base64(item["alarmPicture"] + "?token=" + credential)
+                    resp = {
+                        "deviceCode": item["deviceCode"],
+                        "channelId": item["nodeCode"],
+                        "alarmCode": item["alarmCode"],
+                        "alarmDate": item["alarmDate"],
+                        "personId": faceRecognitionInfo["personId"],
+                        "personName": faceRecognitionInfo["personName"],
+                        "captureFaceImageBase64": captureFaceImageBase64,
+                        "personFaceImageBase64": personFaceImageBase64,
+                        "alarmPictureBase64": alarmPictureBase64,
+                        "similarity": faceRecognitionInfo["similarity"],
+                    }
+                    json_payload = json.dumps(resp).encode("utf-8")
+                    producer.produce(
+                        "dss.event.detect.person", key="", value=json_payload, callback=kafka_callback
+                    )
+                    producer.flush()
+                    logging.info("produced successfully to kafka")
+        elif json_data["method"] == "brms.notifyFaceInfos":
+            logging.info(f"Event data: {json_data}")
+            info = json_data["info"]
+            for item in info:
+                recEmotion = ""
+                if "recEmotion"  in item:
+                    recEmotion = item["recEmotion"]
+                payload = {
                     "alarmCode": item["alarmCode"],
-                    "alarmDate": item["alarmDate"],
-                    "personId": faceRecognitionInfo["personId"],
-                    "personName": faceRecognitionInfo["personName"],
-                    "captureFaceImageBase64": captureFaceImageBase64,
-                    "personFaceImageBase64": personFaceImageBase64,
-                    "alarmPictureBase64": alarmPictureBase64,
-                    "similarity": faceRecognitionInfo["similarity"],
+                    "channelId": item["channelId"],
+                    "appearTimes": item["appearTimes"],
+                    "beginTime": item["beginTime"],
+                    "endTime": item["endTime"],
+                    "recAge": item["recAge"],
+                    "hited": item["hited"],
+                    "recBeard": item["recBeard"],
+                    "recEmotion": recEmotion,
+                    "recEye": item["recEye"],
+                    "recFringe": item["recFringe"],
+                    "recGender": item["recGender"],
+                    "recGlasses": item["recGlasses"],
+                    "recMask": item["recMask"],
+                    "recMouth": item["recMouth"],
+                    "faceImageUrl": item["faceImageUrl"] + "?token=" + credential,
+                    "pictureUrl": item["pictureUrl"] + "?token=" + credential,
+                    "serviceCode": item["serviceCode"],
+                    "similarFaces": item["similarFaces"],
                 }
-                json_payload = json.dumps(resp).encode("utf-8")
-                producer.produce(
-                    "dss.event.detect.person", key="", value=json_payload, callback=kafka_callback
-                )
-                producer.flush()
-                logging.info("produced successfully to kafka")
-        # create_mq_log(msg.topic, json_data)
+                create_face_data(payload, json_data["method"], credential)
+        create_mq_log(msg.topic, json_data, json_data["method"])
 
 
 def on_subscribe(mqttc, obj, mid, reason_code_list):
@@ -351,14 +495,14 @@ if __name__ == "__main__":
     decrypted_pass = aes_decrypt(
         mq_credentials["data"]["password"], secret_key, secret_vector
     )
-    logging.info(f"dss_mq_password: {decrypted_pass}")
     userId = second_authentication_resp["userId"]
     # userGroupId = second_authentication_resp['userGroupId']
     # logging.info(f"second_authentication_resp: {second_authentication_resp}")
     # userGroupId = "001004"
 
     mq_username = mq_credentials["data"]["userName"]
-    logging.info(f"dss_mq_username: {mq_username}")
+    # logging.info(f"dss_mq_username: {mq_username}")
+    # logging.info(f"dss_mq_password: {decrypted_pass}")
     client.username_pw_set(mq_username, decrypted_pass)
     client.on_connect = on_connect
     client.on_message = on_message

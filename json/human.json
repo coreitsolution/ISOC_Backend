@@ -1,0 +1,36 @@
+{
+    "info": [
+        {
+            "age": "0",
+            "bag": "1",
+            "bagType": "0",
+            "beard": "0",
+            "captureTime": "1766480626",
+            "channelId": "1000002$1$0$1",
+            "coat": "1",
+            "coatColor": "1",
+            "detectMode": "2",
+            "direction": "0",
+            "emotion": "",
+            "faceImageBottom": "",
+            "faceImageLeft": "",
+            "faceImageRight": "",
+            "faceImageTop": "",
+            "faceImageUrl": "",
+            "gender": "1",
+            "glasses": "",
+            "hat": "1",
+            "hatType": "0",
+            "humanImageBottom": "5926",
+            "humanImageLeft": "2408",
+            "humanImageRight": "3376",
+            "humanImageTop": "3008",
+            "humanImageUrl": "https://192.168.1.164:443/v1/s/3232235940/9901/f26e6a3b-dbdf-11f0-b36d-a4bf011872c4/20251223/1/dsf_11dc89cf-dfde-11f0-899f-a4bf011872c4_65782582_65900494.jpg",
+            "mask": "0",
+            "pictureUrl": "https://192.168.1.164:443/v1/s/3232235940/9901/f26e6a3b-dbdf-11f0-b36d-a4bf011872c4/20251223/1/dsf_11dc89cf-dfde-11f0-899f-a4bf011872c4_65047422_65782582.jpg",
+            "trousers": "1",
+            "trousersColor": "7"
+        }
+    ],
+    "method": "brms.notifyHumanInfos"
+}
