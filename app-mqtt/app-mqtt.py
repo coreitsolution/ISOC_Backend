@@ -291,6 +291,7 @@ def replace_ip_in_url(url, new_ip):
 
 def download_image_from_url(image_url, destination_dir):
     try:
+        logging.info(f"Downloading image from URL: {image_url}")
         response = requests.get(image_url, verify=False)
         if response.status_code == 200:
             filename = os.path.basename(image_url.split("?")[0])
@@ -298,7 +299,8 @@ def download_image_from_url(image_url, destination_dir):
             if not os.path.exists(destination_dir):
                 os.makedirs(destination_dir)
             with open(file_path, "wb") as f:
-                f.write(response.content)
+                for chunk in response.iter_content(1024):
+                    f.write(chunk)
             logging.info(f"Image downloaded successfully and saved to: {file_path}")
             return file_path
         else:

@@ -7,7 +7,7 @@ services:
     ports:
       - 4445:4445
     volumes:
-      - ./data/face_images:/app/data/face_images
+      - ./data/face_images:/data/face_images
   # kafka-face:
   #   build: 
   #     context: .
