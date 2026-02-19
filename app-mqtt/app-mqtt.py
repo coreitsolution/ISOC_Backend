@@ -500,7 +500,7 @@ def on_message(client, userdata, msg):
                     faceImageUrl, "data/face_images"
                 )
                 pictureImageFile = download_image_from_url(
-                    pictureUrl, "data/picture_images"
+                    pictureUrl, "data/face_images"
                 )
                 payload = {
                     "alarmCode": item["alarmCode"],
