@@ -216,8 +216,16 @@ def create_face_data(face_data, method):
             ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
             isWatchlist = False
+            similarFaces = []
             if len(face_data["similarFaces"]) > 0:
                 isWatchlist = True
+                for face in face_data["similarFaces"]:
+                    similarFaces.append(
+                        {
+                            "personId": face["personId"],
+                            "similarity": face["similarity"],
+                        }
+                    )
             beginTime = datetime.fromtimestamp(int(face_data["beginTime"])).astimezone()
             endTime = datetime.fromtimestamp(int(face_data["endTime"])).astimezone()
             pamars = (
@@ -239,7 +247,7 @@ def create_face_data(face_data, method):
                     face_data["faceImageUrl"],
                     str(face_data["pictureUrl"]),
                     str(face_data["serviceCode"]),
-                    json.dumps(face_data["similarFaces"]),
+                    json.dumps(similarFaces),
                     isWatchlist,
                     method,
                 )
