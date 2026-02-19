@@ -496,6 +496,7 @@ def on_message(client, userdata, msg):
                     + "?token="
                     + credential
                 )
+                
                 faceImageFile = download_image_from_url(
                     faceImageUrl, "data/face_images"
                 )
