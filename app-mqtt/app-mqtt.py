@@ -229,28 +229,28 @@ def create_face_data(face_data, method):
             beginTime = datetime.fromtimestamp(int(face_data["beginTime"])).astimezone()
             endTime = datetime.fromtimestamp(int(face_data["endTime"])).astimezone()
             pamars = (
-                    face_data["alarmCode"],
-                    face_data["channelId"],
-                    face_data["appearTimes"],
-                    beginTime,
-                    endTime,
-                    int(face_data["recAge"]),
-                    recHited(face_data["hited"]),
-                    recBeard(face_data["recBeard"]),
-                    recEmotion(face_data["recEmotion"]),
-                    recEye(face_data["recEye"]),
-                    recFringe(face_data["recFringe"]),
-                    recGender(face_data["recGender"]),
-                    recGlasses(face_data["recGlasses"]),
-                    recMask(face_data["recMask"]),
-                    recMouth(face_data["recMouth"]),
-                    face_data["faceImageUrl"],
-                    str(face_data["pictureUrl"]),
-                    str(face_data["serviceCode"]),
-                    json.dumps(similarFaces),
-                    isWatchlist,
-                    method,
-                )
+                face_data["alarmCode"],
+                face_data["channelId"],
+                face_data["appearTimes"],
+                beginTime,
+                endTime,
+                int(face_data["recAge"]),
+                recHited(face_data["hited"]),
+                recBeard(face_data["recBeard"]),
+                recEmotion(face_data["recEmotion"]),
+                recEye(face_data["recEye"]),
+                recFringe(face_data["recFringe"]),
+                recGender(face_data["recGender"]),
+                recGlasses(face_data["recGlasses"]),
+                recMask(face_data["recMask"]),
+                recMouth(face_data["recMouth"]),
+                face_data["faceImageUrl"],
+                str(face_data["pictureUrl"]),
+                str(face_data["serviceCode"]),
+                json.dumps(similarFaces),
+                isWatchlist,
+                method,
+            )
             cursor.execute(
                 insert_query,
                 pamars,
@@ -498,13 +498,21 @@ def on_message(client, userdata, msg):
                     + "?token="
                     + credential
                 )
-                
+
                 faceImageFile = download_image_from_url(
                     faceImageUrl, "data/face_images"
                 )
                 pictureImageFile = download_image_from_url(
                     pictureUrl, "data/face_images"
                 )
+                if faceImageFile == None:
+                    faceImageFile = ""
+                else:
+                    faceImageFile = faceImageFile.replace("\\", "/")
+                if pictureImageFile == None:
+                    pictureImageFile = ""
+                else:
+                    pictureImageFile = pictureImageFile.replace("\\", "/")
                 payload = {
                     "alarmCode": item["alarmCode"],
                     "channelId": item["channelId"],
@@ -521,8 +529,8 @@ def on_message(client, userdata, msg):
                     "recGlasses": item["recGlasses"],
                     "recMask": item["recMask"],
                     "recMouth": item["recMouth"],
-                    "faceImageUrl": faceImageFile.replace("\\", "/"),
-                    "pictureUrl": pictureImageFile.replace("\\", "/"),
+                    "faceImageUrl": faceImageFile,
+                    "pictureUrl": pictureImageFile,
                     "serviceCode": item["serviceCode"],
                     "similarFaces": item["similarFaces"],
                 }
