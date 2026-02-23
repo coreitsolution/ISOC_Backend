@@ -1,0 +1,45 @@
+[
+    {
+        "info": [
+            {
+                "captureTime": "1771313202",
+                "carColor": "1",
+                "carImageBottom": "6432",
+                "carImageLeft": "0",
+                "carImageRight": "2520",
+                "carImageTop": "848",
+                "carImageUrl": "https://192.168.1.132:443/v1/s/3232235908/9901/f26e6a3b-dbdf-11f0-b36d-a4bf011872c4/20260217/3/dsf_d8f63af0-0bd0-11f1-8af9-a4bf011872c4_65720396_65817339.jpg",
+                "carType": "1",
+                "channelId": "1000004$1$0$2",
+                "direction": "",
+                "faceInfos": [],
+                "pictureUrl": "https://192.168.1.132:443/v1/s/3232235908/9901/f26e6a3b-dbdf-11f0-b36d-a4bf011872c4/20260217/3/dsf_d8f63af0-0bd0-11f1-8af9-a4bf011872c4_65499649_65720396.jpg",
+                "riderNum": "0"
+            }
+        ],
+        "method": "brms.notifyNonVehicleInfos"
+    },
+    {
+        "info": [
+            {
+                "captureTime": "1771569280",
+                "carBrand": "1",
+                "carColor": "5",
+                "carImageBottom": "3704",
+                "carImageLeft": "48",
+                "carImageRight": "1400",
+                "carImageTop": "928",
+                "carType": "22",
+                "channelId": "1000004$1$0$2",
+                "detectMode": "0",
+                "direction": "0",
+                "pictureUrl": "https://192.168.1.132:443/v1/s/3232235908/9901/f26e6a3b-dbdf-11f0-b36d-a4bf011872c4/20260220/1/dsf_88a8fe8e-0e24-11f1-b0c1-a4bf011872c4_66129371_66329418.jpg",
+                "plate": "",
+                "plateColor": "99",
+                "plateImageUrl": "",
+                "vehicleUrl": "https://192.168.1.132:443/v1/s/3232235908/9901/f26e6a3b-dbdf-11f0-b36d-a4bf011872c4/20260220/1/dsf_88a8fe8e-0e24-11f1-b0c1-a4bf011872c4_66329418_66376629.jpg"
+            }
+        ],
+        "method": "brms.notifyVehicleInfos"
+    }
+]

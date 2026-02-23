@@ -20,6 +20,7 @@ import psycopg2
 from psycopg2.extras import Json
 import uuid
 from datetime import datetime
+from mapping import FaceMapping
 from confluent_kafka import Producer
 
 load_dotenv()
@@ -235,15 +236,15 @@ def create_face_data(face_data, method):
                 beginTime,
                 endTime,
                 int(face_data["recAge"]),
-                recHited(face_data["hited"]),
-                recBeard(face_data["recBeard"]),
-                recEmotion(face_data["recEmotion"]),
-                recEye(face_data["recEye"]),
-                recFringe(face_data["recFringe"]),
-                recGender(face_data["recGender"]),
-                recGlasses(face_data["recGlasses"]),
-                recMask(face_data["recMask"]),
-                recMouth(face_data["recMouth"]),
+                FaceMapping.recHited(face_data["hited"]),
+                FaceMapping.recBeard(face_data["recBeard"]),
+                FaceMapping.recEmotion(face_data["recEmotion"]),
+                FaceMapping.recEye(face_data["recEye"]),
+                FaceMapping.recFringe(face_data["recFringe"]),
+                FaceMapping.recGender(face_data["recGender"]),
+                FaceMapping.recGlasses(face_data["recGlasses"]),
+                FaceMapping.recMask(face_data["recMask"]),
+                FaceMapping.recMouth(face_data["recMouth"]),
                 face_data["faceImageUrl"],
                 str(face_data["pictureUrl"]),
                 str(face_data["serviceCode"]),
@@ -265,7 +266,113 @@ def create_face_data(face_data, method):
         return False
     finally:
         conn.close()
+        
+def create_human_detections(human_detections_data, method):
+    """Insert human data into PostgreSQL database"""
+    conn = get_db_connection()
+    if conn is None:
+        return False
+    try:
+        with conn.cursor() as cursor:
+            insert_query = """
+            INSERT INTO center.human_detections (
+                age, gender, capture_time, channel_id, detect_mode, direction, emotion, glasses, hat, hat_type,
+                beard, mask, bag, bag_type, coat, coat_color, trousers, trousers_color, face_image_top, face_image_right, face_image_left, face_image_bottom,
+                face_image_url, picture_url, method) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """
+            capture_time = datetime.fromtimestamp(int(human_detections_data["capture_time"])).astimezone()
+            pamars = (
+                human_detections_data["age"],
+                human_detections_data["gender"],
+                capture_time,
+                human_detections_data["channel_id"],
+                human_detections_data["detect_mode"],
+                human_detections_data["direction"],
+                human_detections_data["emotion"],
+                human_detections_data["glasses"],
+                human_detections_data["hat"],
+                human_detections_data["hat_type"],
+                human_detections_data["beard"],
+                human_detections_data["mask"],
+                human_detections_data["bag"],
+                human_detections_data["bag_type"],
+                human_detections_data["coat"],
+                human_detections_data["coat_color"],
+                human_detections_data["trousers"],
+                human_detections_data["trousers_color"],
+                human_detections_data["face_image_top"],
+                human_detections_data["face_image_right"],
+                human_detections_data["face_image_left"],
+                human_detections_data["face_image_bottom"],
+                str(human_detections_data.get("face_image_url", "")),
+                str(human_detections_data.get("picture_url", "")),
+                method,
+            )
+            cursor.execute(
+                insert_query,
+                pamars,
+            )
+            logging.info(cursor.mogrify(insert_query, pamars).decode("utf-8"))
+            conn.commit()
+            logging.info("Inserted Human Detections Data successfully")
+            return True
+    except Exception as e:
+        logging.error(f"Error inserting Human Detections Data: {e}")
+        conn.rollback()
+        return False
+    finally:
+        conn.close()
+        
 
+def create_vehicle_detections(vehicle_detections_data, method):
+    """Insert vehicle data into PostgreSQL database"""
+    conn = get_db_connection()
+    if conn is None:
+        return False
+    try:
+        with conn.cursor() as cursor:
+            insert_query = """
+            INSERT INTO center.vehicle_detections (
+                capture_time, channel_id, detect_mode, direction, car_brand, car_color, car_type, plate, plate_color,
+                face_infos, rider_number, car_image_top, car_image_right, car_image_left, car_image_bottom,
+                car_image_url, plate_image_url, vehicle_image_url, picture_url, method) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s,
+                %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """
+            capture_time = datetime.fromtimestamp(int(vehicle_detections_data["capture_time"])).astimezone()
+            pamars = (
+                capture_time,
+                vehicle_detections_data["channel_id"],
+                vehicle_detections_data["detect_mode"],
+                vehicle_detections_data["direction"],
+                vehicle_detections_data["car_brand"],
+                vehicle_detections_data["car_color"],
+                vehicle_detections_data["car_type"],
+                vehicle_detections_data["plate"],
+                vehicle_detections_data["plate_color"],
+                json.dumps(vehicle_detections_data.get("face_infos", [])),
+                vehicle_detections_data.get("rider_number", 0),
+                vehicle_detections_data.get("car_image_top", 0),
+                vehicle_detections_data.get("car_image_right", 0),
+                vehicle_detections_data.get("car_image_left", 0),
+                vehicle_detections_data.get("car_image_bottom", 0),
+                str(vehicle_detections_data.get("car_image_url", "")),
+                str(vehicle_detections_data.get("plate_image_url", "")),
+                str(vehicle_detections_data.get("vehicle_image_url", "")),
+                str(vehicle_detections_data.get("picture_url", "")),
+                method,
+            )
+            cursor.execute(
+                insert_query,
+                pamars,
+            )
+            logging.info(cursor.mogrify(insert_query, pamars).decode("utf-8"))
+            conn.commit()
+            logging.info("Inserted Vehicle Detections Data successfully")
+            return True
+    except Exception as e:
+        logging.error(f"Error inserting Vehicle Detections Data: {e}")
+        conn.rollback()
+        return False
 
 def replace_ip_in_url(url, new_ip):
     try:
@@ -314,100 +421,6 @@ def download_image_from_url(image_url, destination_dir):
     except IOError as e:
         logging.error(f"An I/O error occurred while saving the file: {e}")
         return None
-
-
-# hited Whether to recognize: 0: Capture; 1: Recognize
-def recHited(hited):
-    if hited == "1":
-        return "Recognize"
-    else:
-        return "Capture"
-
-
-# recGender Gender: 0: Unrecognized; 1: Male; 2: Female
-def recGender(gender):
-    if gender == "1":
-        return "Male"
-    elif gender == "2":
-        return "Female"
-    else:
-        return "Unrecognized"
-
-
-# recFringe Feature, fringe: 0: No; 1: Yes
-def recFringe(fringe):
-    if fringe == "1":
-        return "Yes"
-    else:
-        return "No"
-
-
-# recEye Feature, eye: 1: Unrecognized; 2: Closed; 3: Opened
-def recEye(eye):
-    if eye == "2":
-        return "Closed"
-    elif eye == "3":
-        return "Opened"
-    else:
-        return "Unrecognized"
-
-
-# recMouth Feature, mouth: 1: Unrecognized; 2: Closed; 3: Opened
-def recMouth(mouth):
-    if mouth == "2":
-        return "Closed"
-    elif mouth == "3":
-        return "Opened"
-    else:
-        return "Unrecognized"
-
-
-# recMask Feature, mask: 0: Unknown (SDK); 1: Unrecognized; 2: Without mask; 3: With mask
-def recMask(mask):
-    if mask == "2":
-        return "Without mask"
-    elif mask == "3":
-        return "With mask"
-    else:
-        return "Unrecognized"
-
-
-# recBeard Feature, beard: 0: Unknown (SDK); 1: Unrecognized; 2: Without beard; 3: With beard
-def recBeard(beard):
-    if beard == "2":
-        return "Without beard"
-    elif beard == "3":
-        return "With beard"
-    else:
-        return "Unrecognized"
-
-
-# recGlasses Feature, glasses: 0: No; 1: With glasses; 2: Sunglasses
-def recGlasses(glasses):
-    if glasses == "1":
-        return "With glasses"
-    elif glasses == "2":
-        return "Sunglasses"
-    else:
-        return "No"
-
-
-# recEmotion Feature, expressions: 0: Smile; 1: Angry; 2: Sad; 3: Disgusted; 4: Scared; 5: Surprised; 6: Normal; 7: Laugh; 8: Happy; 9: Confused; 10: Scream
-def recEmotion(emotion):
-    emotion_mapping = {
-        "0": "Smile",
-        "1": "Angry",
-        "2": "Sad",
-        "3": "Disgusted",
-        "4": "Scared",
-        "5": "Surprised",
-        "6": "Normal",
-        "7": "Laugh",
-        "8": "Happy",
-        "9": "Confused",
-        "10": "Scream",
-    }
-    return emotion_mapping.get(emotion, "Unrecognized")
 
 
 ################################# DSS MQTT #################################
@@ -535,6 +548,11 @@ def on_message(client, userdata, msg):
                     "similarFaces": item["similarFaces"],
                 }
                 create_face_data(payload, json_data["method"])
+        elif json_data["method"] == "brms.notifyHumanInfos":
+            
+            logging.info(f"Event data: {json_data}")
+        elif json_data["method"] == "brms.notifyVehicleInfos" or json_data["method"] == "brms.notifyNonVehicleInfos":
+            logging.info(f"Event data: {json_data}")
         # create_mq_log(msg.topic, json_data, json_data["method"])
 
 
