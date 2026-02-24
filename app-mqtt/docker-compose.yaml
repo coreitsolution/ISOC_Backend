@@ -8,6 +8,8 @@ services:
       - 4445:4445
     volumes:
       - ../../../data/face_images:/data/face_images
+      - ../../../data/human_images:/data/human_images
+      - ../../../data/vehicle_images:/data/vehicle_images
   # kafka-face:
   #   build: 
   #     context: .
