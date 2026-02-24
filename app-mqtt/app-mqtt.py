@@ -39,6 +39,8 @@ userId = ""
 userGroupId = ""
 client = mqtt.Client()
 
+car_brands = []
+
 # kafka_topic_detect_person = "dss.event.detect.person"
 # conf = {
 #     "bootstrap.servers": os.getenv("KAFKA_BOKER_URL", "localhost:9092"),
@@ -665,6 +667,7 @@ def on_message(client, userdata, msg):
                 pictureImageFile = ""
                 faceInfos = []
                 riderNum = "0"
+                car_brand = ""
                 if json_data["method"] == "brms.notifyNonVehicleInfos":
                     if item["carImageUrl"] != "":
                         carImageUrl = (
@@ -700,6 +703,9 @@ def on_message(client, userdata, msg):
                         vehicleImageFile = download_image_from_url(
                             vehicleImageUrl, "data/vehicle_images"
                         )
+                    result = next((brand for brand in car_brands if brand["code"] == item["carBrand"]), None)
+                    if result:
+                        car_brand = result["name"]
                 if item["pictureUrl"] != "":
                     pictureUrl = (
                         replace_ip_in_url(item["pictureUrl"], os.getenv("DSS_API_URL"))
@@ -730,7 +736,7 @@ def on_message(client, userdata, msg):
                     "channel_id": item["channelId"],
                     "detectMode": item["detectMode"],
                     "direction": item["direction"],
-                    "carBrand": item["carBrand"],
+                    "carBrand": car_brand,
                     "carColor": VehicleMapping.carColor(item["carColor"]),
                     "carType": VehicleMapping.carType(item["carType"]),
                     "carImageUrl": carImageFile,
@@ -769,6 +775,12 @@ def kafka_callback(err, msg):
 
 ################################### App Start #################################
 if __name__ == "__main__":
+    car_brands_data = []
+    with open("car_brands.json", "r") as file:
+        car_brands_data = json.load(file)
+
+    car_brands = car_brands_data["car_brands"]
+        
     key = RSA.generate(2048)
     private_key = key.export_key().decode("utf-8")
     public_key = (
