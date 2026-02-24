@@ -486,6 +486,7 @@ def on_message(client, userdata, msg):
             return
         # logging.info(f"json_data: {json_data}")
         if json_data["method"] == "brms.notifyAlarms":
+            logging.info(f"json_data: {json_data}")
             info = json_data["info"]
             for item in info:
                 ext_data = json.loads(item["extData"])
@@ -659,6 +660,7 @@ def on_message(client, userdata, msg):
             json_data["method"] == "brms.notifyVehicleInfos"
             or json_data["method"] == "brms.notifyNonVehicleInfos"
         ):
+            logging.info(f"json_data: {json_data}")
             info = json_data["info"]
             for item in info:
                 plateImageFile = ""
