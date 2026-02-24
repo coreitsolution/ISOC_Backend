@@ -20,7 +20,7 @@ import psycopg2
 from psycopg2.extras import Json
 import uuid
 from datetime import datetime
-from mapping import FaceMapping
+from mapping import FaceMapping, HumanMapping, VehicleMapping
 from confluent_kafka import Producer
 
 load_dotenv()
@@ -266,7 +266,8 @@ def create_face_data(face_data, method):
         return False
     finally:
         conn.close()
-        
+
+
 def create_human_detections(human_detections_data, method):
     """Insert human data into PostgreSQL database"""
     conn = get_db_connection()
@@ -278,34 +279,51 @@ def create_human_detections(human_detections_data, method):
             INSERT INTO center.human_detections (
                 age, gender, capture_time, channel_id, detect_mode, direction, emotion, glasses, hat, hat_type,
                 beard, mask, bag, bag_type, coat, coat_color, trousers, trousers_color, face_image_top, face_image_right, face_image_left, face_image_bottom,
-                face_image_url, picture_url, method) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                face_image_url, picture_url, human_image_top, human_image_right,
+                human_image_left, human_image_bottom, human_image_url, method)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
-            capture_time = datetime.fromtimestamp(int(human_detections_data["capture_time"])).astimezone()
+            capture_time = datetime.fromtimestamp(
+                int(human_detections_data["captureTime"])
+            ).astimezone()
+            if human_detections_data["faceImageTop"] == '':
+                human_detections_data["faceImageTop"] = "0"
+            if human_detections_data["faceImageRight"] == '':
+                human_detections_data["faceImageRight"] = "0"
+            if human_detections_data["faceImageLeft"] == '':
+                human_detections_data["faceImageLeft"] = "0"
+            if human_detections_data["faceImageBottom"] == '':
+                human_detections_data["faceImageBottom"] = "0"
             pamars = (
                 human_detections_data["age"],
-                human_detections_data["gender"],
+                HumanMapping.gender(human_detections_data["gender"]),
                 capture_time,
-                human_detections_data["channel_id"],
-                human_detections_data["detect_mode"],
+                human_detections_data["channelId"],
+                human_detections_data["detectMode"],
                 human_detections_data["direction"],
-                human_detections_data["emotion"],
-                human_detections_data["glasses"],
-                human_detections_data["hat"],
-                human_detections_data["hat_type"],
-                human_detections_data["beard"],
-                human_detections_data["mask"],
-                human_detections_data["bag"],
-                human_detections_data["bag_type"],
-                human_detections_data["coat"],
-                human_detections_data["coat_color"],
-                human_detections_data["trousers"],
-                human_detections_data["trousers_color"],
-                human_detections_data["face_image_top"],
-                human_detections_data["face_image_right"],
-                human_detections_data["face_image_left"],
-                human_detections_data["face_image_bottom"],
-                str(human_detections_data.get("face_image_url", "")),
-                str(human_detections_data.get("picture_url", "")),
+                FaceMapping.recEmotion(human_detections_data["emotion"]),
+                FaceMapping.recGlasses(human_detections_data["glasses"]),
+                HumanMapping.hat(human_detections_data["hat"]),
+                HumanMapping.hatType(human_detections_data["hatType"]),
+                FaceMapping.recBeard(human_detections_data["beard"]),
+                FaceMapping.recMask(human_detections_data["mask"]),
+                HumanMapping.bag(human_detections_data["bag"]),
+                HumanMapping.bagType(human_detections_data["bagType"]),
+                HumanMapping.clothes(human_detections_data["coat"]),
+                HumanMapping.clothesColor(human_detections_data["coatColor"]),
+                HumanMapping.trouser(human_detections_data["trousers"]),
+                HumanMapping.trouserColors(human_detections_data["trousersColor"]),
+                human_detections_data["faceImageTop"],
+                human_detections_data["faceImageRight"],
+                human_detections_data["faceImageLeft"],
+                human_detections_data["faceImageBottom"],
+                str(human_detections_data.get("faceImageUrl", "")),
+                str(human_detections_data.get("pictureUrl", "")),
+                human_detections_data["humanImageTop"],
+                human_detections_data["humanImageRight"],
+                human_detections_data["humanImageLeft"],
+                human_detections_data["humanImageBottom"],
+                str(human_detections_data.get("humanImageUrl", "")),
                 method,
             )
             cursor.execute(
@@ -322,7 +340,7 @@ def create_human_detections(human_detections_data, method):
         return False
     finally:
         conn.close()
-        
+
 
 def create_vehicle_detections(vehicle_detections_data, method):
     """Insert vehicle data into PostgreSQL database"""
@@ -335,30 +353,37 @@ def create_vehicle_detections(vehicle_detections_data, method):
             INSERT INTO center.vehicle_detections (
                 capture_time, channel_id, detect_mode, direction, car_brand, car_color, car_type, plate, plate_color,
                 face_infos, rider_number, car_image_top, car_image_right, car_image_left, car_image_bottom,
-                car_image_url, plate_image_url, vehicle_image_url, picture_url, method) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s,
-                %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                car_image_url, plate_image_url, vehicle_image_url, picture_url, method) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
-            capture_time = datetime.fromtimestamp(int(vehicle_detections_data["capture_time"])).astimezone()
+            capture_time = datetime.fromtimestamp(
+                int(vehicle_detections_data["capture_time"])
+            ).astimezone()
+            if "brms.notifyNonVehicleInfos" in method:
+                vehicle_detections_data["plate"] = ""
+                vehicle_detections_data["plateColor"] = ""
+                vehicle_detections_data["plateImageUrl"] = ""
+            else:
+                vehicle_detections_data["faceInfos"] = []
             pamars = (
                 capture_time,
                 vehicle_detections_data["channel_id"],
-                vehicle_detections_data["detect_mode"],
+                vehicle_detections_data["detectMode"],
                 vehicle_detections_data["direction"],
-                vehicle_detections_data["car_brand"],
-                vehicle_detections_data["car_color"],
-                vehicle_detections_data["car_type"],
+                vehicle_detections_data["carBrand"],
+                VehicleMapping.carColor(vehicle_detections_data["carColor"]),
+                VehicleMapping.carType(vehicle_detections_data["carType"]),
                 vehicle_detections_data["plate"],
-                vehicle_detections_data["plate_color"],
-                json.dumps(vehicle_detections_data.get("face_infos", [])),
-                vehicle_detections_data.get("rider_number", 0),
-                vehicle_detections_data.get("car_image_top", 0),
-                vehicle_detections_data.get("car_image_right", 0),
-                vehicle_detections_data.get("car_image_left", 0),
-                vehicle_detections_data.get("car_image_bottom", 0),
-                str(vehicle_detections_data.get("car_image_url", "")),
-                str(vehicle_detections_data.get("plate_image_url", "")),
-                str(vehicle_detections_data.get("vehicle_image_url", "")),
-                str(vehicle_detections_data.get("picture_url", "")),
+                VehicleMapping.plateColor(vehicle_detections_data["plateColor"]),
+                json.dumps(vehicle_detections_data["faceInfos"]),
+                vehicle_detections_data["riderNumber"],
+                vehicle_detections_data["carImageTop"],
+                vehicle_detections_data["carImageRight"],
+                vehicle_detections_data["carImageLeft"],
+                vehicle_detections_data["carImageBottom"],
+                str(vehicle_detections_data["carImageUrl"]),
+                str(vehicle_detections_data["plateImageUrl"]),
+                str(vehicle_detections_data["vehicleUrl"]),
+                str(vehicle_detections_data["pictureUrl"]),
                 method,
             )
             cursor.execute(
@@ -373,6 +398,7 @@ def create_vehicle_detections(vehicle_detections_data, method):
         logging.error(f"Error inserting Vehicle Detections Data: {e}")
         conn.rollback()
         return False
+
 
 def replace_ip_in_url(url, new_ip):
     try:
@@ -456,7 +482,7 @@ def on_message(client, userdata, msg):
             or json_data["method"] == "vms.notifyUserOnlineStatus"
         ):
             return
-        logging.info(f"json_data: {json_data}")
+        # logging.info(f"json_data: {json_data}")
         if json_data["method"] == "brms.notifyAlarms":
             info = json_data["info"]
             for item in info:
@@ -549,10 +575,178 @@ def on_message(client, userdata, msg):
                 }
                 create_face_data(payload, json_data["method"])
         elif json_data["method"] == "brms.notifyHumanInfos":
-            
-            logging.info(f"Event data: {json_data}")
-        elif json_data["method"] == "brms.notifyVehicleInfos" or json_data["method"] == "brms.notifyNonVehicleInfos":
-            logging.info(f"Event data: {json_data}")
+            logging.info(f"json_data: {json_data}")
+            info = json_data["info"]
+            for item in info:
+                emotion = ""
+                if "emotion" in item:
+                    emotion = item["emotion"]
+                faceImageFile = ""
+                pictureImageFile = ""
+                humanImageFile = ""
+                if item["faceImageUrl"] != "":
+                    faceImageUrl = (
+                        replace_ip_in_url(
+                            item["faceImageUrl"], os.getenv("DSS_API_URL")
+                        )
+                        + "?token="
+                        + credential
+                    )
+                    faceImageFile = download_image_from_url(
+                        faceImageUrl, "data/human_images"
+                    )
+                if item["pictureUrl"] != "":
+                    pictureUrl = (
+                        replace_ip_in_url(item["pictureUrl"], os.getenv("DSS_API_URL"))
+                        + "?token="
+                        + credential
+                    )
+                    pictureImageFile = download_image_from_url(
+                        pictureUrl, "data/human_images"
+                    )
+                if item["humanImageUrl"] != "":
+                    humanImageUrl = (
+                        replace_ip_in_url(item["humanImageUrl"], os.getenv("DSS_API_URL"))
+                        + "?token="
+                        + credential
+                    )
+                    humanImageFile = download_image_from_url(
+                        humanImageUrl, "data/human_images"
+                    )
+                if faceImageFile == None:
+                    faceImageFile = ""
+                else:
+                    faceImageFile = faceImageFile.replace("\\", "/")
+                if pictureImageFile == None:
+                    pictureImageFile = ""
+                else:
+                    pictureImageFile = pictureImageFile.replace("\\", "/")
+                human_detections_data = {
+                    "age": item["age"],
+                    "gender": item["gender"],
+                    "captureTime": item["captureTime"],
+                    "channelId": item["channelId"],
+                    "detectMode": item["detectMode"],
+                    "direction": item["direction"],
+                    "emotion": item["emotion"],
+                    "glasses": item["glasses"],
+                    "hat": item["hat"],
+                    "hatType": item["hatType"],
+                    "beard": item["beard"],
+                    "mask": item["mask"],
+                    "bag": item["bag"],
+                    "bagType": item["bagType"],
+                    "coat": item["coat"],
+                    "coatColor": item["coatColor"],
+                    "trousers": item["trousers"],
+                    "trousersColor": item["trousersColor"],
+                    "faceImageTop": item["faceImageTop"],
+                    "faceImageRight": item["faceImageRight"],
+                    "faceImageLeft": item["faceImageLeft"],
+                    "faceImageBottom": item["faceImageBottom"],
+                    "faceImageUrl": faceImageFile,
+                    "pictureUrl": pictureImageFile,
+                    "humanImageUrl": humanImageFile,
+                    "humanImageBottom": item["humanImageBottom"],
+                    "humanImageLeft": item["humanImageLeft"],
+                    "humanImageRight": item["humanImageRight"],
+                    "humanImageTop": item["humanImageTop"],
+                }
+                create_human_detections(human_detections_data, json_data["method"])
+        elif (
+            json_data["method"] == "brms.notifyVehicleInfos"
+            or json_data["method"] == "brms.notifyNonVehicleInfos"
+        ):
+            info = json_data["info"]
+            for item in info:
+                plateImageFile = ""
+                vehicleImageFile = ""
+                carImageFile = ""
+                pictureImageFile = ""
+                faceInfos = []
+                riderNum = "0"
+                if json_data["method"] == "brms.notifyNonVehicleInfos":
+                    if item["carImageUrl"] != "":
+                        carImageUrl = (
+                            replace_ip_in_url(item["carImageUrl"], os.getenv("DSS_API_URL"))
+                            + "?token="
+                            + credential
+                        )
+                        carImageFile = download_image_from_url(
+                            carImageUrl, "data/vehicle_images"
+                        )
+                        faceInfos = item["faceInfos"]
+                        riderNum = item["riderNumber"]
+                else:
+                    if item["plateImageUrl"] != "":
+                        plateImageUrl = (
+                            replace_ip_in_url(
+                                item["plateImageUrl"], os.getenv("DSS_API_URL")
+                            )
+                            + "?token="
+                            + credential
+                        )
+                        plateImageFile = download_image_from_url(
+                            plateImageUrl, "data/vehicle_images"
+                        )
+                    if item["vehicleUrl"] != "":
+                        vehicleImageUrl = (
+                            replace_ip_in_url(
+                                item["vehicleUrl"], os.getenv("DSS_API_URL")
+                            )
+                            + "?token="
+                            + credential
+                        )
+                        vehicleImageFile = download_image_from_url(
+                            vehicleImageUrl, "data/vehicle_images"
+                        )
+                if item["pictureUrl"] != "":
+                    pictureUrl = (
+                        replace_ip_in_url(item["pictureUrl"], os.getenv("DSS_API_URL"))
+                        + "?token="
+                        + credential
+                    )
+                    pictureImageFile = download_image_from_url(
+                        pictureUrl, "data/vehicle_images"
+                    )
+                if carImageFile == None:
+                    carImageFile = ""
+                else:
+                    carImageFile = carImageFile.replace("\\", "/")
+                if plateImageFile == None:
+                    plateImageFile = ""
+                else:
+                    plateImageFile = plateImageFile.replace("\\", "/")
+                if vehicleImageFile == None:
+                    vehicleImageFile = ""
+                else:
+                    vehicleImageFile = vehicleImageFile.replace("\\", "/")
+                if pictureImageFile == None:
+                    pictureImageFile = ""
+                else:
+                    pictureImageFile = pictureImageFile.replace("\\", "/")
+                vehicle_detections_data = {
+                    "capture_time": item["captureTime"],
+                    "channel_id": item["channelId"],
+                    "detectMode": item["detectMode"],
+                    "direction": item["direction"],
+                    "carBrand": item["carBrand"],
+                    "carColor": VehicleMapping.carColor(item["carColor"]),
+                    "carType": VehicleMapping.carType(item["carType"]),
+                    "carImageUrl": carImageFile,
+                    "plateImageUrl": plateImageFile,
+                    "vehicleUrl": vehicleImageFile,
+                    "pictureUrl": pictureImageFile,
+                    "plate": item["plate"],
+                    "plateColor": VehicleMapping.plateColor(item["plateColor"]),
+                    "faceInfos": faceInfos,
+                    "riderNumber": riderNum,
+                    "carImageBottom": item["carImageBottom"],
+                    "carImageLeft": item["carImageLeft"],
+                    "carImageRight": item["carImageRight"],
+                    "carImageTop": item["carImageTop"],
+                }
+                create_vehicle_detections(vehicle_detections_data, json_data["method"])
         # create_mq_log(msg.topic, json_data, json_data["method"])
 
 
@@ -617,7 +811,7 @@ if __name__ == "__main__":
         certifi.where(), cert_reqs=ssl.CERT_NONE, tls_version=ssl.PROTOCOL_TLSv1_2
     )
     logging.info("Connecting to MQTT Broker...")
-    client.connect(dss_mqtt, dss_mqtt_port, 60)
+    client.connect(dss_mqtt, dss_mqtt_port, 3600)
     client.loop_start()
 
     try:

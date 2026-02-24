@@ -131,3 +131,5 @@ __pycache__/
 app-mqtt/kafka/data/
 */data/face_images/
 */data/picture_images/
+*/data/human_images/
+*/data/vehicle_images/
