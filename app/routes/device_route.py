@@ -13,26 +13,28 @@ def api_device_tree():
     resp = utils.get_token()
     token = resp["token"]
     device_tree_resp = api_device.api_get_device_tree(token)
-    channels = []
+    camera_devices = []
     if device_tree_resp["desc"] == "Success":
         devices = device_tree_resp["data"]["devices"]
         for device in devices:
             units = device["units"]
             for unit in units:
-                if unit["assistStream"] != None:
-                    channels.append({
-                        "channelCode": unit["channels"][0]["channelCode"],
-                        "channelName": unit["channels"][0]["channelName"],
-                        "deviceIp": device["deviceIp"],
-                        "deviceModelStr": device["deviceModelStr"],
-                        "name": device["name"],
-                        "orgCode": device["orgCode"],
-                        "sn": device["sn"]
-                    })
+                channels = unit["channels"]
+                for channel in channels:
+                    if channel["status"] == "1":
+                        camera_devices.append({
+                            "channelCode":channel["channelCode"],
+                            "channelName": channel["channelName"],
+                            "deviceIp": device["deviceIp"],
+                            "deviceModelStr": device["deviceModelStr"],
+                            "name": device["name"],
+                            "orgCode": device["orgCode"],
+                            "sn": device["sn"]
+                        })
     return jsonify({
         "code": 1000,
         "desc": "Success",
-        "data": channels
+        "data": camera_devices
     })
 
 
