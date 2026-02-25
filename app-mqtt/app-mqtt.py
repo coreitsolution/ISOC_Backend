@@ -377,7 +377,7 @@ def create_vehicle_detections(vehicle_detections_data, method):
                 vehicle_detections_data["plate"],
                 VehicleMapping.plateColor(vehicle_detections_data["plateColor"]),
                 json.dumps(vehicle_detections_data["faceInfos"]),
-                vehicle_detections_data["riderNumber"],
+                vehicle_detections_data["riderNum"],
                 vehicle_detections_data["carImageTop"],
                 vehicle_detections_data["carImageRight"],
                 vehicle_detections_data["carImageLeft"],
@@ -681,7 +681,7 @@ def on_message(client, userdata, msg):
                             carImageUrl, "data/vehicle_images"
                         )
                         faceInfos = item["faceInfos"]
-                        riderNum = item["riderNumber"]
+                        riderNum = item["riderNum"]
                 else:
                     if item["plateImageUrl"] != "":
                         plateImageUrl = (
@@ -748,7 +748,7 @@ def on_message(client, userdata, msg):
                     "plate": item["plate"],
                     "plateColor": VehicleMapping.plateColor(item["plateColor"]),
                     "faceInfos": faceInfos,
-                    "riderNumber": riderNum,
+                    "riderNum": riderNum,
                     "carImageBottom": item["carImageBottom"],
                     "carImageLeft": item["carImageLeft"],
                     "carImageRight": item["carImageRight"],
