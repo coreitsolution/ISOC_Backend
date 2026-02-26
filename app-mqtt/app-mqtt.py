@@ -454,8 +454,8 @@ def download_image_from_url(image_url, destination_dir):
 ################################# DSS MQTT #################################
 def on_connect(client, userdata, flags, reason_code):
     if reason_code == 0:
-        topic_alarm = "mq/alarm/msg/topic"
-        topic_event = "mq/event/msg/topic"
+        topic_alarm = "mq/alarm/msg/topic/" + userId
+        topic_event = "mq/event/msg/topic/" + userId
         topic_common = "mq/common/msg/topic"
         # topic_group = "mq/alarm/msg/group/topic/" + userGroupId
         client.subscribe(topic_alarm)
