@@ -478,8 +478,6 @@ def on_message(client, userdata, msg):
     logging.info(f"method: {json_data['method']}")
     credential = ""
     if "method" in json_data:
-        if 'id' in json_data:
-            logging.info(f"id: {json_data['id']}")
         if json_data["method"] == "brms.notifyFaceInfos":
             try:
                 resp = get_token()
@@ -732,6 +730,7 @@ def on_message(client, userdata, msg):
                 create_vehicle_detections(vehicle_detections_data, json_data["method"])
         # create_mq_log(msg.topic, json_data, json_data["method"])
     logging.info("################################ MQTT Message Processed #################################")
+    logging.info("")
 
 
 def on_subscribe(mqttc, obj, mid, reason_code_list):
