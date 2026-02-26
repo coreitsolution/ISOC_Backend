@@ -678,6 +678,8 @@ def on_message(client, userdata, msg):
                 car_brand = ""
                 if json_data["method"] == "brms.notifyNonVehicleInfos":
                     item["detectMode"] = ""
+                    item["plate"] = ""
+                    item["plateColor"] = ""
                     if item["carImageUrl"] != "":
                         carImageUrl = (
                             replace_ip_in_url(
