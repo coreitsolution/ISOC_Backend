@@ -473,57 +473,16 @@ def on_disconnect(client, userdata, rc):
 def on_message(client, userdata, msg):
     payload_json = msg.payload.decode("utf-8")
     json_data = json.loads(payload_json)
-    resp = get_token()
-    token = resp["token"]
-    credential = resp["credential"]
     logging.info(f"Received MQTT message on topic {msg.topic}")
     logging.info(f"method: {json_data['method']}")
     if "method" in json_data:
-        if (
-            json_data["method"] == "vms.notifyUserTokenExpiration"
-            or json_data["method"] == "vms.notifyUserOnlineStatus"
-        ):
-            return
-        # logging.info(f"json_data: {json_data}")
-        # if json_data["method"] == "brms.notifyAlarms":
-        #     logging.info(f"json_data: {json_data}")
-        #     info = json_data["info"]
-        #     for item in info:
-        #         ext_data = json.loads(item["extData"])
-        #         if "faceRecognitionInfo" in ext_data:
-        #             faceRecognitionInfo = ext_data["faceRecognitionInfo"]
-        #             personFaceImageBase64 = image_url_to_base64(
-        #                 faceRecognitionInfo["personFaceImageUrl"]
-        #                 + "?token="
-        #                 + credential
-        #             )
-        #             captureFaceImageBase64 = image_url_to_base64(
-        #                 faceRecognitionInfo["captureFaceImageUrl"]
-        #                 + "?token="
-        #                 + credential
-        #             )
-        #             alarmPictureBase64 = image_url_to_base64(
-        #                 item["alarmPicture"] + "?token=" + credential
-        #             )
-        #             resp = {
-        #                 "deviceCode": item["deviceCode"],
-        #                 "channelId": item["nodeCode"],
-        #                 "alarmCode": item["alarmCode"],
-        #                 "alarmDate": item["alarmDate"],
-        #                 "personId": faceRecognitionInfo["personId"],
-        #                 "personName": faceRecognitionInfo["personName"],
-        #                 "captureFaceImageBase64": captureFaceImageBase64,
-        #                 "personFaceImageBase64": personFaceImageBase64,
-        #                 "alarmPictureBase64": alarmPictureBase64,
-        #                 "similarity": faceRecognitionInfo["similarity"],
-        #             }
-        #             json_payload = json.dumps(resp).encode("utf-8")
-        #             producer.produce(
-        #                 "dss.event.detect.person", key="", value=json_payload, callback=kafka_callback
-        #             )
-        #             producer.flush()
-        #             logging.info("produced successfully to kafka")
         if json_data["method"] == "brms.notifyFaceInfos":
+            try:
+                resp = get_token()
+                credential = resp["credential"]
+            except Exception as e:
+                logging.error(f"Error getting token: {e}")
+                return
             logging.info(f"Event data: {json_data}")
             info = json_data["info"]
             for item in info:
@@ -578,6 +537,12 @@ def on_message(client, userdata, msg):
                 }
                 create_face_data(payload, json_data["method"])
         elif json_data["method"] == "brms.notifyHumanInfos":
+            try:
+                resp = get_token()
+                credential = resp["credential"]
+            except Exception as e:
+                logging.error(f"Error getting token: {e}")
+                return
             logging.info(f"json_data: {json_data}")
             info = json_data["info"]
             for item in info:
@@ -660,6 +625,12 @@ def on_message(client, userdata, msg):
             json_data["method"] == "brms.notifyVehicleInfos"
             or json_data["method"] == "brms.notifyNonVehicleInfos"
         ):
+            try:
+                resp = get_token()
+                credential = resp["credential"]
+            except Exception as e:
+                logging.error(f"Error getting token: {e}")
+                return
             logging.info(f"json_data: {json_data}")
             info = json_data["info"]
             for item in info:

@@ -10,7 +10,6 @@ services:
       - ../../../data/face_images:/data/face_images
       - ../../../data/human_images:/data/human_images
       - ../../../data/vehicle_images:/data/vehicle_images
-    network_mode: host
   # kafka-face:
   #   build: 
   #     context: .
