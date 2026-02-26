@@ -21,7 +21,7 @@ from psycopg2.extras import Json
 import uuid
 from datetime import datetime
 from mapping import FaceMapping, HumanMapping, VehicleMapping
-from confluent_kafka import Producer
+# from confluent_kafka import Producer
 
 load_dotenv()
 
@@ -41,11 +41,11 @@ client = mqtt.Client()
 
 car_brands = []
 
-kafka_topic_detect_person = "dss.event.detect.person"
-conf = {
-    "bootstrap.servers": os.getenv("KAFKA_BOKER_URL", "localhost:9092"),
-}
-producer = Producer(**conf)
+# kafka_topic_detect_person = "dss.event.detect.person"
+# conf = {
+#     "bootstrap.servers": os.getenv("KAFKA_BOKER_URL", "localhost:9092"),
+# }
+# producer = Producer(**conf)
 
 ################################# DSS Authentication #################################
 
@@ -485,45 +485,45 @@ def on_message(client, userdata, msg):
         ):
             return
         # logging.info(f"json_data: {json_data}")
-        if json_data["method"] == "brms.notifyAlarms":
-            logging.info(f"json_data: {json_data}")
-            info = json_data["info"]
-            for item in info:
-                ext_data = json.loads(item["extData"])
-                if "faceRecognitionInfo" in ext_data:
-                    faceRecognitionInfo = ext_data["faceRecognitionInfo"]
-                    personFaceImageBase64 = image_url_to_base64(
-                        faceRecognitionInfo["personFaceImageUrl"]
-                        + "?token="
-                        + credential
-                    )
-                    captureFaceImageBase64 = image_url_to_base64(
-                        faceRecognitionInfo["captureFaceImageUrl"]
-                        + "?token="
-                        + credential
-                    )
-                    alarmPictureBase64 = image_url_to_base64(
-                        item["alarmPicture"] + "?token=" + credential
-                    )
-                    resp = {
-                        "deviceCode": item["deviceCode"],
-                        "channelId": item["nodeCode"],
-                        "alarmCode": item["alarmCode"],
-                        "alarmDate": item["alarmDate"],
-                        "personId": faceRecognitionInfo["personId"],
-                        "personName": faceRecognitionInfo["personName"],
-                        "captureFaceImageBase64": captureFaceImageBase64,
-                        "personFaceImageBase64": personFaceImageBase64,
-                        "alarmPictureBase64": alarmPictureBase64,
-                        "similarity": faceRecognitionInfo["similarity"],
-                    }
-                    json_payload = json.dumps(resp).encode("utf-8")
-                    producer.produce(
-                        "dss.event.detect.person", key="", value=json_payload, callback=kafka_callback
-                    )
-                    producer.flush()
-                    logging.info("produced successfully to kafka")
-        elif json_data["method"] == "brms.notifyFaceInfos":
+        # if json_data["method"] == "brms.notifyAlarms":
+        #     logging.info(f"json_data: {json_data}")
+        #     info = json_data["info"]
+        #     for item in info:
+        #         ext_data = json.loads(item["extData"])
+        #         if "faceRecognitionInfo" in ext_data:
+        #             faceRecognitionInfo = ext_data["faceRecognitionInfo"]
+        #             personFaceImageBase64 = image_url_to_base64(
+        #                 faceRecognitionInfo["personFaceImageUrl"]
+        #                 + "?token="
+        #                 + credential
+        #             )
+        #             captureFaceImageBase64 = image_url_to_base64(
+        #                 faceRecognitionInfo["captureFaceImageUrl"]
+        #                 + "?token="
+        #                 + credential
+        #             )
+        #             alarmPictureBase64 = image_url_to_base64(
+        #                 item["alarmPicture"] + "?token=" + credential
+        #             )
+        #             resp = {
+        #                 "deviceCode": item["deviceCode"],
+        #                 "channelId": item["nodeCode"],
+        #                 "alarmCode": item["alarmCode"],
+        #                 "alarmDate": item["alarmDate"],
+        #                 "personId": faceRecognitionInfo["personId"],
+        #                 "personName": faceRecognitionInfo["personName"],
+        #                 "captureFaceImageBase64": captureFaceImageBase64,
+        #                 "personFaceImageBase64": personFaceImageBase64,
+        #                 "alarmPictureBase64": alarmPictureBase64,
+        #                 "similarity": faceRecognitionInfo["similarity"],
+        #             }
+        #             json_payload = json.dumps(resp).encode("utf-8")
+        #             producer.produce(
+        #                 "dss.event.detect.person", key="", value=json_payload, callback=kafka_callback
+        #             )
+        #             producer.flush()
+        #             logging.info("produced successfully to kafka")
+        if json_data["method"] == "brms.notifyFaceInfos":
             logging.info(f"Event data: {json_data}")
             info = json_data["info"]
             for item in info:
