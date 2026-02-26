@@ -21,6 +21,7 @@ from psycopg2.extras import Json
 import uuid
 from datetime import datetime
 from mapping import FaceMapping, HumanMapping, VehicleMapping
+
 # from confluent_kafka import Producer
 
 load_dotenv()
@@ -35,6 +36,8 @@ dss_mqtt_port = int(os.getenv("MQTT_BROKER_PORT", 1883))
 dss_username = os.getenv("DSS_USERNAME")
 dss_password = os.getenv("DSS_PASSWORD")
 
+dss_token = ""
+dss_credential = ""
 userId = ""
 userGroupId = ""
 client = mqtt.Client()
@@ -114,7 +117,40 @@ def aes_decrypt(word, secret_key, secret_vector):
     return decrypted_word.decode("utf-8")
 
 
+def keep_alive(token):
+    resp = requests.put(
+        url="https://" + dss_host + "/brms/api/v1.0/accounts/keepalive",
+        headers={"X-Subject-Token": token},
+        json={token: token},
+        verify=False,
+    ).json()
+    return resp
+
+
+def update_token(token):
+    resp = requests.post(
+        url="https://" + dss_host + "/brms/api/v1.0/accounts/updateToken",
+        headers={"X-Subject-Token": token},
+        json={},
+        verify=False,
+    ).json()
+    return resp
+
+
+def check_token(token):
+    resp = keep_alive(token)
+    if resp["code"] == 1000:
+        if resp["desc"] == "Success":
+            data = resp["data"]
+            return True, data["token"]
+        else:
+            False, ""
+    else:
+        return False, ""
+
+
 def get_token():
+    logging.info("Starting authentication process to obtain token...")
     key = RSA.generate(2048)
     public_key = (
         key.publickey()
@@ -134,6 +170,7 @@ def get_token():
     second_authentication_resp = second_authentication(
         signature, first_authentication_resp["randomKey"], public_key
     )
+    logging.info("Authentication successful, token obtained.")
     return second_authentication_resp
 
 
@@ -288,13 +325,13 @@ def create_human_detections(human_detections_data, method):
             capture_time = datetime.fromtimestamp(
                 int(human_detections_data["captureTime"])
             ).astimezone()
-            if human_detections_data["faceImageTop"] == '':
+            if human_detections_data["faceImageTop"] == "":
                 human_detections_data["faceImageTop"] = "0"
-            if human_detections_data["faceImageRight"] == '':
+            if human_detections_data["faceImageRight"] == "":
                 human_detections_data["faceImageRight"] = "0"
-            if human_detections_data["faceImageLeft"] == '':
+            if human_detections_data["faceImageLeft"] == "":
                 human_detections_data["faceImageLeft"] = "0"
-            if human_detections_data["faceImageBottom"] == '':
+            if human_detections_data["faceImageBottom"] == "":
                 human_detections_data["faceImageBottom"] = "0"
             pamars = (
                 human_detections_data["age"],
@@ -473,18 +510,24 @@ def on_disconnect(client, userdata, rc):
 def on_message(client, userdata, msg):
     payload_json = msg.payload.decode("utf-8")
     json_data = json.loads(payload_json)
-    logging.info("################################ MQTT Message Received #################################")
+    logging.info(
+        "################################ MQTT Message Received #################################"
+    )
     logging.info(f"Received MQTT message on topic {msg.topic}")
     logging.info(f"method: {json_data['method']}")
-    credential = ""
     if "method" in json_data:
+        logging.info("*********** check token *************")
+        token_valid, token = check_token(dss_token)
+        if not token_valid:
+            update_token_data = update_token(dss_token)
+            if update_token_data["code"] == 1000 and update_token_data["desc"] == "Success":
+                update_dss_token(update_token_data["data"]["token"], update_token_data["data"]["credential"])
+                logging.info("Token updated successfully.")
+        else:
+            update_dss_token(token, dss_credential)
+            logging.info("Token is still valid.")
+        logging.info("************************************")
         if json_data["method"] == "brms.notifyFaceInfos":
-            try:
-                resp = get_token()
-                credential = resp["credential"]
-            except Exception as e:
-                logging.error(f"Error getting token: {e}")
-                return
             logging.info(f"Event data: {json_data}")
             info = json_data["info"]
             for item in info:
@@ -494,12 +537,12 @@ def on_message(client, userdata, msg):
                 faceImageUrl = (
                     replace_ip_in_url(item["faceImageUrl"], os.getenv("DSS_API_URL"))
                     + "?token="
-                    + credential
+                    + dss_credential
                 )
                 pictureUrl = (
                     replace_ip_in_url(item["pictureUrl"], os.getenv("DSS_API_URL"))
                     + "?token="
-                    + credential
+                    + dss_credential
                 )
 
                 faceImageFile = download_image_from_url(
@@ -539,12 +582,6 @@ def on_message(client, userdata, msg):
                 }
                 create_face_data(payload, json_data["method"])
         elif json_data["method"] == "brms.notifyHumanInfos":
-            try:
-                resp = get_token()
-                credential = resp["credential"]
-            except Exception as e:
-                logging.error(f"Error getting token: {e}")
-                return
             logging.info(f"json_data: {json_data}")
             info = json_data["info"]
             for item in info:
@@ -560,7 +597,7 @@ def on_message(client, userdata, msg):
                             item["faceImageUrl"], os.getenv("DSS_API_URL")
                         )
                         + "?token="
-                        + credential
+                        + dss_credential
                     )
                     faceImageFile = download_image_from_url(
                         faceImageUrl, "data/human_images"
@@ -569,16 +606,18 @@ def on_message(client, userdata, msg):
                     pictureUrl = (
                         replace_ip_in_url(item["pictureUrl"], os.getenv("DSS_API_URL"))
                         + "?token="
-                        + credential
+                        + dss_credential
                     )
                     pictureImageFile = download_image_from_url(
                         pictureUrl, "data/human_images"
                     )
                 if item["humanImageUrl"] != "":
                     humanImageUrl = (
-                        replace_ip_in_url(item["humanImageUrl"], os.getenv("DSS_API_URL"))
+                        replace_ip_in_url(
+                            item["humanImageUrl"], os.getenv("DSS_API_URL")
+                        )
                         + "?token="
-                        + credential
+                        + dss_credential
                     )
                     humanImageFile = download_image_from_url(
                         humanImageUrl, "data/human_images"
@@ -627,12 +666,6 @@ def on_message(client, userdata, msg):
             json_data["method"] == "brms.notifyVehicleInfos"
             or json_data["method"] == "brms.notifyNonVehicleInfos"
         ):
-            try:
-                resp = get_token()
-                credential = resp["credential"]
-            except Exception as e:
-                logging.error(f"Error getting token: {e}")
-                return
             logging.info(f"json_data: {json_data}")
             info = json_data["info"]
             for item in info:
@@ -646,9 +679,11 @@ def on_message(client, userdata, msg):
                 if json_data["method"] == "brms.notifyNonVehicleInfos":
                     if item["carImageUrl"] != "":
                         carImageUrl = (
-                            replace_ip_in_url(item["carImageUrl"], os.getenv("DSS_API_URL"))
+                            replace_ip_in_url(
+                                item["carImageUrl"], os.getenv("DSS_API_URL")
+                            )
                             + "?token="
-                            + credential
+                            + dss_credential
                         )
                         carImageFile = download_image_from_url(
                             carImageUrl, "data/vehicle_images"
@@ -662,7 +697,7 @@ def on_message(client, userdata, msg):
                                 item["plateImageUrl"], os.getenv("DSS_API_URL")
                             )
                             + "?token="
-                            + credential
+                            + dss_credential
                         )
                         plateImageFile = download_image_from_url(
                             plateImageUrl, "data/vehicle_images"
@@ -673,19 +708,26 @@ def on_message(client, userdata, msg):
                                 item["vehicleUrl"], os.getenv("DSS_API_URL")
                             )
                             + "?token="
-                            + credential
+                            + dss_credential
                         )
                         vehicleImageFile = download_image_from_url(
                             vehicleImageUrl, "data/vehicle_images"
                         )
-                    result = next((brand for brand in car_brands if brand["code"] == item["carBrand"]), None)
+                    result = next(
+                        (
+                            brand
+                            for brand in car_brands
+                            if brand["code"] == item["carBrand"]
+                        ),
+                        None,
+                    )
                     if result:
                         car_brand = result["name"]
                 if item["pictureUrl"] != "":
                     pictureUrl = (
                         replace_ip_in_url(item["pictureUrl"], os.getenv("DSS_API_URL"))
                         + "?token="
-                        + credential
+                        + dss_credential
                     )
                     pictureImageFile = download_image_from_url(
                         pictureUrl, "data/vehicle_images"
@@ -729,7 +771,9 @@ def on_message(client, userdata, msg):
                 }
                 create_vehicle_detections(vehicle_detections_data, json_data["method"])
         # create_mq_log(msg.topic, json_data, json_data["method"])
-    logging.info("################################ MQTT Message Processed #################################")
+    logging.info(
+        "######################################################################################"
+    )
     logging.info("")
 
 
@@ -751,13 +795,27 @@ def kafka_callback(err, msg):
 
 
 ################################### App Start #################################
+
+def create_dss_token(token_data, credential):
+    dss_token = token_data
+    dss_credential = credential
+    logging.info(f"Creating DSS token with data: {dss_token}, credential: {dss_credential}")
+
+
+def update_dss_token(token_data, credential):
+    global dss_token, dss_credential
+    dss_token = token_data
+    dss_credential = credential
+    logging.info(f"Updating DSS token with data: {dss_token}, credential: {dss_credential}")
+
+
 if __name__ == "__main__":
     car_brands_data = []
     with open("car_brands.json", "r") as file:
         car_brands_data = json.load(file)
 
     car_brands = car_brands_data["car_brands"]
-        
+
     key = RSA.generate(2048)
     private_key = key.export_key().decode("utf-8")
     public_key = (
@@ -775,6 +833,9 @@ if __name__ == "__main__":
     second_authentication_resp = second_authentication(
         signature, first_authentication_resp["randomKey"], public_key
     )
+    # dss_token = second_authentication_resp["token"]
+    # dss_credential = second_authentication_resp["credential"]
+    create_dss_token(dss_token, dss_credential)
     secret_key = rsa_decrypt(second_authentication_resp["secretKey"], private_key)
     secret_vector = rsa_decrypt(second_authentication_resp["secretVector"], private_key)
     mq_credentials = get_mq_credentials(second_authentication_resp["token"])
