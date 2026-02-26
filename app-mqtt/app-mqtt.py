@@ -475,6 +475,7 @@ def on_message(client, userdata, msg):
     json_data = json.loads(payload_json)
     logging.info(f"Received MQTT message on topic {msg.topic}")
     logging.info(f"method: {json_data['method']}")
+    credential = ""
     if "method" in json_data:
         if json_data["method"] == "brms.notifyFaceInfos":
             try:
