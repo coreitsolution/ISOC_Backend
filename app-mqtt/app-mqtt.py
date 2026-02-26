@@ -691,6 +691,7 @@ def on_message(client, userdata, msg):
                         faceInfos = item["faceInfos"]
                         riderNum = item["riderNum"]
                 else:
+                    item["detectMode"] = ""
                     if item["plateImageUrl"] != "":
                         plateImageUrl = (
                             replace_ip_in_url(
