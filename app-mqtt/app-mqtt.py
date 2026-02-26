@@ -677,6 +677,7 @@ def on_message(client, userdata, msg):
                 riderNum = "0"
                 car_brand = ""
                 if json_data["method"] == "brms.notifyNonVehicleInfos":
+                    item["detectMode"] = ""
                     if item["carImageUrl"] != "":
                         carImageUrl = (
                             replace_ip_in_url(
@@ -691,7 +692,6 @@ def on_message(client, userdata, msg):
                         faceInfos = item["faceInfos"]
                         riderNum = item["riderNum"]
                 else:
-                    item["detectMode"] = ""
                     if item["plateImageUrl"] != "":
                         plateImageUrl = (
                             replace_ip_in_url(
