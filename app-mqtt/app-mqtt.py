@@ -41,11 +41,11 @@ client = mqtt.Client()
 
 car_brands = []
 
-# kafka_topic_detect_person = "dss.event.detect.person"
-# conf = {
-#     "bootstrap.servers": os.getenv("KAFKA_BOKER_URL", "localhost:9092"),
-# }
-# producer = Producer(**conf)
+kafka_topic_detect_person = "dss.event.detect.person"
+conf = {
+    "bootstrap.servers": os.getenv("KAFKA_BOKER_URL", "localhost:9092"),
+}
+producer = Producer(**conf)
 
 ################################# DSS Authentication #################################
 
@@ -518,10 +518,10 @@ def on_message(client, userdata, msg):
                         "similarity": faceRecognitionInfo["similarity"],
                     }
                     json_payload = json.dumps(resp).encode("utf-8")
-                    # producer.produce(
-                    #     "dss.event.detect.person", key="", value=json_payload, callback=kafka_callback
-                    # )
-                    # producer.flush()
+                    producer.produce(
+                        "dss.event.detect.person", key="", value=json_payload, callback=kafka_callback
+                    )
+                    producer.flush()
                     logging.info("produced successfully to kafka")
         elif json_data["method"] == "brms.notifyFaceInfos":
             logging.info(f"Event data: {json_data}")
