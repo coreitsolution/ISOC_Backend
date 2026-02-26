@@ -473,7 +473,9 @@ def on_disconnect(client, userdata, rc):
 def on_message(client, userdata, msg):
     payload_json = msg.payload.decode("utf-8")
     json_data = json.loads(payload_json)
+    logging.info("################################ MQTT Message Received #################################")
     logging.info(f"Received MQTT message on topic {msg.topic}")
+    logging.info(f"id: {json_data['id']}")
     logging.info(f"method: {json_data['method']}")
     credential = ""
     if "method" in json_data:
@@ -728,6 +730,7 @@ def on_message(client, userdata, msg):
                 }
                 create_vehicle_detections(vehicle_detections_data, json_data["method"])
         # create_mq_log(msg.topic, json_data, json_data["method"])
+    logging.info("################################ MQTT Message Processed #################################")
 
 
 def on_subscribe(mqttc, obj, mid, reason_code_list):
