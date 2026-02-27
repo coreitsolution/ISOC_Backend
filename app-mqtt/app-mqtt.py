@@ -519,10 +519,13 @@ def on_message(client, userdata, msg):
         logging.info("*********** check token *************")
         token_valid, token = check_token(dss_token)
         if not token_valid:
-            update_token_data = update_token(dss_token)
-            if update_token_data["code"] == 1000 and update_token_data["desc"] == "Success":
-                update_dss_token(update_token_data["data"]["token"], update_token_data["data"]["credential"])
-                logging.info("Token updated successfully.")
+            new_token_data = get_token()
+            update_dss_token(new_token_data["token"], new_token_data["credential"])
+            logging.info("Token refreshed successfully.")
+            # update_token_data = update_token(dss_token)
+            # if update_token_data["code"] == 1000 and update_token_data["desc"] == "Success":
+            #     update_dss_token(update_token_data["data"]["token"], update_token_data["data"]["credential"])
+            #     logging.info("Token updated successfully.")
         else:
             update_dss_token(token, dss_credential)
             logging.info("Token is still valid.")
